@@ -3,6 +3,9 @@ import { defineStore } from "pinia";
 import router from "@/router";
 import { api, unwrap } from "@/api";
 import { logger } from "@/utils/logger";
+import { useNotificationsStore } from "@/stores/notifications";
+import { useSessionsStore } from "@/stores/sessions";
+import { useRostersStore } from "@/stores/rosters";
 import type { LoginPayload, UserProfile } from "@/types/auth";
 
 const STORAGE_KEY = "secure-exam-auth";
@@ -101,10 +104,6 @@ export const useAuthStore = defineStore("auth", () => {
 
   function resetDependentStores(): void {
     try {
-      const { useNotificationsStore } = require("@/stores/notifications");
-      const { useSessionsStore } = require("@/stores/sessions");
-      const { useRostersStore } = require("@/stores/rosters");
-
       const notifStore = useNotificationsStore();
       notifStore.inbox = null;
       notifStore.unread = 0;
