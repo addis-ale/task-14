@@ -71,3 +71,4 @@ venv/s
 /session-1.json
 /session-2.json
 /convert_ai_session.py
+.claude/
