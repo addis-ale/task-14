@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx vue-tsc:*)",
+      "Bash(npx vite:*)",
+      "Bash(chmod +x run_tests.sh unit_tests/run_unit_tests.sh API_tests/run_api_tests.sh)",
+      "Bash(mvn test:*)",
+      "Bash(chmod +x:*)",
+      "Bash(bash API_tests/run_api_tests.sh)",
+      "Bash(bash run_tests.sh)",
+      "Bash(npm install:*)",
+      "Bash(npx vitest:*)"
+    ]
+  }
+}
