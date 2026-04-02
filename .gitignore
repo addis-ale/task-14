@@ -66,5 +66,8 @@ Thumbs.db
 __pycache__/
 *.py[cod]
 *$py.class
-venv/
+venv/s
 .venv/
+/session-1.json
+/session-2.json
+/convert_ai_session.py
