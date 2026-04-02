@@ -68,4 +68,5 @@ __pycache__/
 *$py.class
 venv/s
 .venv/
+/convert_ai_session.py
 .claude/
