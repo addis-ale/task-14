@@ -4,6 +4,7 @@ import DataTable from "@/components/DataTable/DataTable.vue";
 import { api, unwrap } from "@/api";
 import { handleApiError, showSuccess } from "@/utils/toast";
 import { formatDateTime } from "@/utils/date";
+import { maskStudentId } from "@/utils/pii";
 import { useI18n } from "@/i18n";
 import type { TableColumn } from "@/types/ui";
 import type { PageData } from "@/types/api";
@@ -100,26 +101,25 @@ function flagTypeLabel(type: unknown): string {
   }
 }
 
-// Mock visualization data helpers
-function getTimelineData(flag: Record<string, unknown>): number[] {
+// Visualization data accessors — return null when backend data is absent
+function getTimelineData(flag: Record<string, unknown>): number[] | null {
   const data = flag.activityData as number[] | undefined;
-  return data || [2, 3, 1, 8, 15, 22, 18, 5, 2, 1];
+  return data && data.length > 0 ? data : null;
 }
 
-function getSubmissionPair(flag: Record<string, unknown>): { left: string; right: string } {
+function getSubmissionPair(flag: Record<string, unknown>): { left: string; right: string } | null {
   const pair = flag.submissionPair as { left?: string; right?: string } | undefined;
-  return {
-    left: pair?.left || "Student A submitted: Answer set #1\nQ1: B\nQ2: A\nQ3: D\nQ4: C\nQ5: A",
-    right: pair?.right || "Student B submitted: Answer set #2\nQ1: B\nQ2: A\nQ3: D\nQ4: C\nQ5: A",
-  };
+  if (!pair || (!pair.left && !pair.right)) return null;
+  return { left: pair.left || "", right: pair.right || "" };
 }
 
-function getScoreData(flag: Record<string, unknown>): { student: number; classAvg: number; classStd: number } {
+function getScoreData(flag: Record<string, unknown>): { student: number; classAvg: number; classStd: number } | null {
   const data = flag.scoreData as { student?: number; classAvg?: number; classStd?: number } | undefined;
+  if (!data || data.student === undefined) return null;
   return {
-    student: data?.student ?? 95,
-    classAvg: data?.classAvg ?? 68,
-    classStd: data?.classStd ?? 12,
+    student: data.student,
+    classAvg: data.classAvg ?? 0,
+    classStd: data.classStd ?? 0,
   };
 }
 </script>
@@ -188,7 +188,7 @@ function getScoreData(flag: Record<string, unknown>): { student: number; classAv
           <h4>{{ t("antiCheat.studentInfo") }}</h4>
           <div class="info-grid">
             <div><strong>{{ t("antiCheat.studentName") }}</strong><span>{{ selectedFlag.studentName || selectedFlag.targetRef || '-' }}</span></div>
-            <div><strong>学号 Student ID</strong><span>{{ selectedFlag.studentId || '-' }}</span></div>
+            <div><strong>学号 Student ID</strong><span>{{ maskStudentId(selectedFlag.studentId as string | number | undefined) }}</span></div>
             <div><strong>{{ t("antiCheat.flagType") }}</strong><span>{{ flagTypeLabel(selectedFlag.ruleType) }}</span></div>
             <div><strong>风险分 Risk Score</strong><span class="risk-score">{{ selectedFlag.riskScore || '-' }}</span></div>
           </div>
@@ -201,61 +201,70 @@ function getScoreData(flag: Record<string, unknown>): { student: number; classAv
           <!-- ACTIVITY_BURST: Timeline chart -->
           <div v-if="selectedFlag.ruleType === 'ACTIVITY_BURST'" class="viz-card">
             <h5>{{ t("antiCheat.actionDensity") }}</h5>
-            <div class="timeline-chart">
-              <div
-                v-for="(val, idx) in getTimelineData(selectedFlag)"
-                :key="idx"
-                class="bar"
-                :style="{ height: Math.min(val * 4, 100) + 'px' }"
-                :class="{ highlight: val > 10 }"
-                :title="`T${idx}: ${val} actions`"
-              />
-            </div>
-            <div class="chart-label">
-              <small>时间区间 Time intervals</small>
-            </div>
+            <template v-if="getTimelineData(selectedFlag)">
+              <div class="timeline-chart">
+                <div
+                  v-for="(val, idx) in getTimelineData(selectedFlag)"
+                  :key="idx"
+                  class="bar"
+                  :style="{ height: Math.min(val * 4, 100) + 'px' }"
+                  :class="{ highlight: val > 10 }"
+                  :title="`T${idx}: ${val} actions`"
+                />
+              </div>
+              <div class="chart-label">
+                <small>时间区间 Time intervals</small>
+              </div>
+            </template>
+            <div v-else class="data-unavailable">数据暂不可用 Activity data unavailable</div>
           </div>
 
           <!-- IDENTICAL_SUBMISSIONS: Side-by-side -->
           <div v-if="selectedFlag.ruleType === 'IDENTICAL_SUBMISSIONS'" class="viz-card">
             <h5>{{ t("antiCheat.submissionComparison") }}</h5>
-            <div class="comparison-grid">
-              <div class="submission-panel">
-                <strong>提交 A Submission A</strong>
-                <pre>{{ getSubmissionPair(selectedFlag).left }}</pre>
+            <template v-if="getSubmissionPair(selectedFlag)">
+              <div class="comparison-grid">
+                <div class="submission-panel">
+                  <strong>提交 A Submission A</strong>
+                  <pre>{{ getSubmissionPair(selectedFlag)!.left }}</pre>
+                </div>
+                <div class="submission-panel">
+                  <strong>提交 B Submission B</strong>
+                  <pre>{{ getSubmissionPair(selectedFlag)!.right }}</pre>
+                </div>
               </div>
-              <div class="submission-panel">
-                <strong>提交 B Submission B</strong>
-                <pre>{{ getSubmissionPair(selectedFlag).right }}</pre>
-              </div>
-            </div>
+            </template>
+            <div v-else class="data-unavailable">数据暂不可用 Submission data unavailable</div>
           </div>
 
           <!-- ABNORMAL_SCORE_DELTA: Score chart -->
           <div v-if="selectedFlag.ruleType === 'ABNORMAL_SCORE_DELTA'" class="viz-card">
             <h5>{{ t("antiCheat.scoreDistribution") }}</h5>
+            <template v-if="getScoreData(selectedFlag)">
             <div class="score-chart">
               <div class="score-bar-group">
                 <div class="score-bar-wrapper">
-                  <div class="score-bar student-bar" :style="{ height: getScoreData(selectedFlag).student + '%' }">
-                    <span class="bar-label">{{ getScoreData(selectedFlag).student }}</span>
+                  <div class="score-bar student-bar" :style="{ height: getScoreData(selectedFlag)!.student + '%' }">
+                    <span class="bar-label">{{ getScoreData(selectedFlag)!.student }}</span>
                   </div>
                   <small>该生 Student</small>
                 </div>
                 <div class="score-bar-wrapper">
-                  <div class="score-bar avg-bar" :style="{ height: getScoreData(selectedFlag).classAvg + '%' }">
-                    <span class="bar-label">{{ getScoreData(selectedFlag).classAvg }}</span>
+                  <div class="score-bar avg-bar" :style="{ height: getScoreData(selectedFlag)!.classAvg + '%' }">
+                    <span class="bar-label">{{ getScoreData(selectedFlag)!.classAvg }}</span>
                   </div>
                   <small>班均 Class Avg</small>
                 </div>
                 <div class="score-bar-wrapper">
-                  <div class="score-bar std-bar" :style="{ height: getScoreData(selectedFlag).classStd * 3 + '%' }">
-                    <span class="bar-label">&sigma;{{ getScoreData(selectedFlag).classStd }}</span>
+                  <div class="score-bar std-bar" :style="{ height: getScoreData(selectedFlag)!.classStd * 3 + '%' }">
+                    <span class="bar-label">&sigma;{{ getScoreData(selectedFlag)!.classStd }}</span>
                   </div>
                   <small>标准差 StdDev</small>
                 </div>
               </div>
             </div>
+            </template>
+            <div v-else class="data-unavailable">数据暂不可用 Score data unavailable</div>
           </div>
 
           <!-- Fallback for unknown types -->
@@ -304,6 +313,16 @@ function getScoreData(flag: Record<string, unknown>): { student: number; classAv
 .breadcrumb {
   font-size: 0.85rem;
   color: var(--color-text-soft);
+}
+
+.data-unavailable {
+  padding: 16px;
+  text-align: center;
+  color: var(--color-text-soft);
+  background: #f9fbfc;
+  border: 1px dashed var(--color-border);
+  border-radius: 8px;
+  font-size: 0.88rem;
 }
 
 h2, h3, h4, h5 {

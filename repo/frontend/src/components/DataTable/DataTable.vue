@@ -26,6 +26,7 @@ const emit = defineEmits<{
 }>();
 
 const loading = ref(false);
+const fetchError = ref("");
 const search = ref("");
 const sort = ref("");
 const order = ref<"asc" | "desc">("asc");
@@ -49,6 +50,7 @@ const totalPages = computed(() =>
 
 async function loadTable(): Promise<void> {
   loading.value = true;
+  fetchError.value = "";
   try {
     const params = {
       page: page.value,
@@ -61,6 +63,10 @@ async function loadTable(): Promise<void> {
     const result = await props.fetcher(params);
     tableData.value = result;
     emit("loaded", result.items);
+  } catch (err) {
+    const msg = (err as { response?: { data?: { message?: string } }; message?: string })
+      ?.response?.data?.message || (err as Error)?.message || "数据加载失败 Failed to load data";
+    fetchError.value = msg;
   } finally {
     loading.value = false;
   }
@@ -194,7 +200,15 @@ onMounted(() => {
               </details>
             </td>
           </tr>
-          <tr v-if="!loading && tableData.items.length === 0">
+          <tr v-if="!loading && fetchError">
+            <td :colspan="columns.length + 1" class="error-state">
+              <div class="error-content">
+                <span>加载失败 Load failed: {{ fetchError }}</span>
+                <button type="button" class="retry-btn" @click="loadTable">重试 Retry</button>
+              </div>
+            </td>
+          </tr>
+          <tr v-else-if="!loading && !fetchError && tableData.items.length === 0">
             <td :colspan="columns.length + 1" class="empty">
               暂无数据 No data
             </td>
@@ -352,6 +366,28 @@ tbody tr:focus-within {
 .empty {
   text-align: center;
   color: var(--color-text-soft);
+}
+
+.error-state {
+  text-align: center;
+}
+
+.error-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 10px;
+  color: var(--color-danger);
+}
+
+.retry-btn {
+  background: #fdeeed;
+  border-color: #f7c6c2;
+  color: #9e3a35;
+  min-height: 32px;
+  padding: 0 12px;
+  cursor: pointer;
 }
 
 .table-pagination {

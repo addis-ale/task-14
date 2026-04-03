@@ -49,16 +49,20 @@ const editForm = reactive({
 
 const passwordStrength = computed(() => {
   const p = createForm.password;
-  if (!p) return { level: 0, label: "", cls: "" };
+  if (!p) return { level: 0, label: "", cls: "", valid: false };
   let score = 0;
-  if (p.length >= 8) score++;
+  if (p.length >= 12) score++;
   if (/[A-Z]/.test(p)) score++;
+  if (/[a-z]/.test(p)) score++;
   if (/[0-9]/.test(p)) score++;
   if (/[^A-Za-z0-9]/.test(p)) score++;
-  if (score <= 1) return { level: 1, label: t("users.weak"), cls: "weak" };
-  if (score <= 2) return { level: 2, label: t("users.medium"), cls: "medium" };
-  return { level: 3, label: t("users.strong"), cls: "strong" };
+  const valid = score === 5;
+  if (score <= 2) return { level: 1, label: t("users.weak"), cls: "weak", valid };
+  if (score <= 3) return { level: 2, label: t("users.medium"), cls: "medium", valid };
+  return { level: 3, label: t("users.strong"), cls: "strong", valid };
 });
+
+const passwordPolicyHint = ">=12 chars, uppercase, lowercase, digit, special character";
 
 async function fetcher(
   params: Record<string, unknown>,
@@ -79,6 +83,10 @@ async function fetcher(
 }
 
 async function createUser(): Promise<void> {
+  if (!passwordStrength.value.valid) {
+    handleApiError({ message: `Password does not meet policy: ${passwordPolicyHint}` });
+    return;
+  }
   try {
     await unwrap(
       api.post("/users", {
@@ -268,6 +276,7 @@ function toggleRole(role: string) {
               </div>
               <small>{{ t("users.passwordStrength") }}: {{ passwordStrength.label }}</small>
             </div>
+            <small v-if="createForm.password && !passwordStrength.valid" class="policy-hint">{{ passwordPolicyHint }}</small>
           </label>
           <label class="field">
             <span>{{ t("users.displayName") }}</span>
@@ -503,6 +512,11 @@ select, input, button {
 
 .strength-bar.strong .strength-fill {
   background: var(--color-success);
+}
+
+.policy-hint {
+  color: var(--color-warning);
+  font-size: 0.78rem;
 }
 
 .checkbox-group {

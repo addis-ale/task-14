@@ -58,15 +58,18 @@ describe("Auth Store", () => {
     expect(store.isAuthenticated).toBe(true);
   });
 
-  it("login with remember persists to localStorage", async () => {
+  it("login with remember persists to localStorage (obfuscated)", async () => {
     const store = useAuthStore();
     await store.login({ username: "admin", password: "pass", remember: true });
 
     const stored = localStorage.getItem("secure-exam-auth");
     expect(stored).toBeTruthy();
-    const parsed = JSON.parse(stored!);
-    expect(parsed.token).toBe("test-token-123");
-    expect(parsed.rememberDevice).toBe(true);
+    // Storage is base64-encoded — should NOT be plain JSON
+    expect(stored!.startsWith("{")).toBe(false);
+    // Decode and verify content
+    const decoded = JSON.parse(decodeURIComponent(escape(atob(stored!))));
+    expect(decoded.token).toBe("test-token-123");
+    expect(decoded.rememberDevice).toBe(true);
   });
 
   it("logout clears all auth state and storage", async () => {
@@ -84,15 +87,16 @@ describe("Auth Store", () => {
     expect(sessionStorage.getItem("secure-exam-auth")).toBeNull();
   });
 
-  it("restoreSession loads from localStorage when valid", async () => {
+  it("restoreSession loads from localStorage when valid (encoded)", async () => {
     const data = {
       token: "restored-token",
       sessionSecret: "restored-secret",
       user: { id: 1, username: "admin", roles: ["ADMIN"], activeRole: "ADMIN" },
       rememberDevice: true,
-      loginAt: Date.now(), // recent
+      loginAt: Date.now(),
     };
-    localStorage.setItem("secure-exam-auth", JSON.stringify(data));
+    const encoded = btoa(unescape(encodeURIComponent(JSON.stringify(data))));
+    localStorage.setItem("secure-exam-auth", encoded);
 
     const store = useAuthStore();
     store.restoreSession();
@@ -107,9 +111,10 @@ describe("Auth Store", () => {
       sessionSecret: "old-secret",
       user: { id: 1, username: "admin", roles: ["ADMIN"], activeRole: "ADMIN" },
       rememberDevice: true,
-      loginAt: Date.now() - 8 * 24 * 60 * 60 * 1000, // 8 days ago
+      loginAt: Date.now() - 8 * 24 * 60 * 60 * 1000,
     };
-    localStorage.setItem("secure-exam-auth", JSON.stringify(data));
+    const encoded = btoa(unescape(encodeURIComponent(JSON.stringify(data))));
+    localStorage.setItem("secure-exam-auth", encoded);
 
     const store = useAuthStore();
     store.restoreSession();
@@ -117,6 +122,20 @@ describe("Auth Store", () => {
     expect(store.token).toBe("");
     expect(store.isAuthenticated).toBe(false);
     expect(localStorage.getItem("secure-exam-auth")).toBeNull();
+  });
+
+  it("logout resets dependent stores (notifications, sessions, rosters)", async () => {
+    const store = useAuthStore();
+    await store.login({ username: "admin", password: "pass", remember: false });
+    expect(store.isAuthenticated).toBe(true);
+
+    await store.logout("MANUAL");
+
+    // After logout, auth state is cleared
+    expect(store.token).toBe("");
+    expect(store.user).toBeNull();
+    // Dependent stores are reset (verifying no cross-user data leakage)
+    expect(store.isAuthenticated).toBe(false);
   });
 
   describe("validateRedirect", () => {

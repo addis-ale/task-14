@@ -11,6 +11,14 @@ import type { LoginPayload, UserProfile } from "@/types/auth";
 const STORAGE_KEY = "secure-exam-auth";
 const REMEMBER_DEVICE_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
 
+// Obfuscate stored auth data to reduce plain-text credential exposure in Web Storage
+function encodePayload(data: string): string {
+  try { return btoa(unescape(encodeURIComponent(data))); } catch { return data; }
+}
+function decodePayload(encoded: string): string {
+  try { return decodeURIComponent(escape(atob(encoded))); } catch { return encoded; }
+}
+
 interface PersistedAuth {
   token: string;
   sessionSecret: string;
@@ -127,7 +135,7 @@ export const useAuthStore = defineStore("auth", () => {
     }
 
     try {
-      const parsed = JSON.parse(raw) as PersistedAuth;
+      const parsed = JSON.parse(decodePayload(raw)) as PersistedAuth;
 
       // Remember-device TTL: if from localStorage, check 7-day expiry
       if (localRaw && parsed.rememberDevice && parsed.loginAt) {
@@ -177,6 +185,7 @@ export const useAuthStore = defineStore("auth", () => {
     pendingDrafts.value = [];
     loginAt.value = 0;
     clearStorage();
+    resetDependentStores();
 
     if (router.currentRoute.value.name !== "login") {
       await router.push({ name: "login" });
@@ -196,7 +205,7 @@ export const useAuthStore = defineStore("auth", () => {
       loginAt: loginAt.value,
     };
 
-    const raw = JSON.stringify(payload);
+    const raw = encodePayload(JSON.stringify(payload));
     if (rememberDevice.value) {
       localStorage.setItem(STORAGE_KEY, raw);
       sessionStorage.removeItem(STORAGE_KEY);

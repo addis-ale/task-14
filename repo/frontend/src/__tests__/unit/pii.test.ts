@@ -32,4 +32,14 @@ describe("pii.ts — maskStudentId", () => {
   it("masks exactly 5-char string correctly", () => {
     expect(maskStudentId("ABCDE")).toBe("*BCDE");
   });
+
+  it("always masks IDs longer than 4 chars by default (security regression)", () => {
+    // Ensures all student IDs in operational views are masked
+    const testIds = ["20261001", "S12345678", "STU-2026-001"];
+    for (const id of testIds) {
+      const masked = maskStudentId(id);
+      expect(masked).not.toBe(id);
+      expect(masked).toContain("*");
+    }
+  });
 });

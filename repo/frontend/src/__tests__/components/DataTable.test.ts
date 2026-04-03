@@ -96,4 +96,37 @@ describe("DataTable.vue", () => {
     await flushPromises();
     expect(wrapper.findAll("tbody td")[1].text()).toContain("20261234");
   });
+
+  it("shows error state with retry button on fetch failure", async () => {
+    const fetcher = vi.fn().mockRejectedValue(new Error("Network error"));
+    const wrapper = mount(DataTable, {
+      props: { columns, fetcher },
+    });
+    await flushPromises();
+    expect(wrapper.text()).toContain("加载失败");
+    expect(wrapper.text()).toContain("Network error");
+    expect(wrapper.find(".retry-btn").exists()).toBe(true);
+  });
+
+  it("retries fetch when retry button clicked", async () => {
+    let callCount = 0;
+    const fetcher = vi.fn().mockImplementation(() => {
+      callCount++;
+      if (callCount === 1) return Promise.reject(new Error("fail"));
+      return Promise.resolve({
+        items: [{ name: "Alice", sid: "1" }],
+        pagination: { page: 1, size: 20, totalItems: 1, totalPages: 1 },
+      });
+    });
+    const wrapper = mount(DataTable, {
+      props: { columns, fetcher },
+    });
+    await flushPromises();
+    expect(wrapper.text()).toContain("加载失败");
+
+    await wrapper.find(".retry-btn").trigger("click");
+    await flushPromises();
+    expect(wrapper.text()).toContain("Alice");
+    expect(wrapper.find(".retry-btn").exists()).toBe(false);
+  });
 });

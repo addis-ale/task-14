@@ -1,20 +1,46 @@
 <script setup lang="ts">
-import { computed } from "vue";
+import { computed, ref } from "vue";
 import { useNotifications } from "@/composables/useNotifications";
 import { formatDateTime } from "@/utils/date";
+import { api, unwrap } from "@/api";
 
 const { inbox, unread, loading, markRead, fetchInbox } = useNotifications();
 
 const cards = computed(() => inbox.value?.items || []);
 
+const expandedDeliveryId = ref<number | null>(null);
+const deliveryDetail = ref<Record<string, unknown> | null>(null);
+const deliveryLoading = ref(false);
+
 function priorityClass(priority: string): string {
-  if (priority === "HIGH") {
-    return "high";
-  }
-  if (priority === "MEDIUM") {
-    return "medium";
-  }
+  if (priority === "HIGH") return "high";
+  if (priority === "MEDIUM") return "medium";
   return "low";
+}
+
+async function toggleDeliveryDetail(item: { deliveryId: number; notificationId: number }): Promise<void> {
+  if (expandedDeliveryId.value === item.deliveryId) {
+    expandedDeliveryId.value = null;
+    deliveryDetail.value = null;
+    return;
+  }
+  expandedDeliveryId.value = item.deliveryId;
+  deliveryLoading.value = true;
+  try {
+    deliveryDetail.value = await unwrap(
+      api.get(`/inbox/${item.deliveryId}/delivery-status`),
+    );
+  } catch {
+    deliveryDetail.value = {
+      channel: "-",
+      status: "-",
+      attempts: 0,
+      lastAttemptAt: null,
+      deliveredAt: null,
+    };
+  } finally {
+    deliveryLoading.value = false;
+  }
 }
 </script>
 
@@ -61,14 +87,37 @@ function priorityClass(priority: string): string {
         <p>{{ item.body }}</p>
         <footer>
           <small>{{ formatDateTime(item.deliveredAt) }}</small>
-          <button
-            v-if="!item.read"
-            type="button"
-            @click="markRead(item.deliveryId)"
-          >
-            标记已读 Mark as read
-          </button>
+          <div class="footer-actions">
+            <button
+              v-if="!item.read"
+              type="button"
+              @click="markRead(item.deliveryId)"
+            >
+              标记已读 Mark as read
+            </button>
+            <button
+              type="button"
+              class="detail-btn"
+              @click.stop="toggleDeliveryDetail(item)"
+            >
+              {{ expandedDeliveryId === item.deliveryId ? '收起 Hide' : '投递详情 Delivery' }}
+            </button>
+          </div>
         </footer>
+        <!-- Delivery status detail -->
+        <div
+          v-if="expandedDeliveryId === item.deliveryId"
+          class="delivery-detail"
+        >
+          <div v-if="deliveryLoading" class="detail-loading">加载中...</div>
+          <div v-else-if="deliveryDetail" class="detail-grid">
+            <div><strong>渠道 Channel</strong><span>{{ deliveryDetail.channel || '-' }}</span></div>
+            <div><strong>状态 Status</strong><span>{{ deliveryDetail.status || '-' }}</span></div>
+            <div><strong>尝试次数 Attempts</strong><span>{{ deliveryDetail.attempts ?? 0 }}</span></div>
+            <div><strong>最后尝试 Last Attempt</strong><span>{{ formatDateTime(deliveryDetail.lastAttemptAt as string) }}</span></div>
+            <div><strong>送达时间 Delivered</strong><span>{{ formatDateTime(deliveryDetail.deliveredAt as string) }}</span></div>
+          </div>
+        </div>
       </li>
     </ul>
   </section>
@@ -188,5 +237,48 @@ footer {
 .illu {
   font-size: 2.4rem;
   margin: 0;
+}
+
+.footer-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.detail-btn {
+  font-size: 0.82rem;
+  min-height: 30px;
+  background: #f3f8fb;
+}
+
+.delivery-detail {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px dashed var(--color-border);
+}
+
+.detail-loading {
+  color: var(--color-text-soft);
+  font-size: 0.85rem;
+}
+
+.detail-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 8px;
+}
+
+.detail-grid > div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.detail-grid strong {
+  font-size: 0.78rem;
+  color: var(--color-text-soft);
+}
+
+.detail-grid span {
+  font-size: 0.88rem;
 }
 </style>
