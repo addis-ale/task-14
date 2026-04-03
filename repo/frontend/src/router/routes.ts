@@ -42,6 +42,7 @@ export const appRoutes: RouteRecordRaw[] = [
             "SUBJECT_TEACHER",
           ],
           breadcrumb: "Dashboard",
+          requiredAction: "view" as const,
         },
       },
       {
@@ -58,6 +59,7 @@ export const appRoutes: RouteRecordRaw[] = [
             "SUBJECT_TEACHER",
           ],
           breadcrumb: "Scheduling",
+          requiredAction: "view" as const,
         },
       },
       {
@@ -86,6 +88,7 @@ export const appRoutes: RouteRecordRaw[] = [
             "SUBJECT_TEACHER",
           ],
           breadcrumb: "Session Detail",
+          requiredAction: "view" as const,
         },
       },
       {
@@ -102,6 +105,7 @@ export const appRoutes: RouteRecordRaw[] = [
             "SUBJECT_TEACHER",
           ],
           breadcrumb: "Rosters",
+          requiredAction: "view" as const,
         },
       },
       {
@@ -131,6 +135,7 @@ export const appRoutes: RouteRecordRaw[] = [
           requiresAuth: true,
           roles: ["ADMIN", "ACADEMIC_AFFAIRS"],
           breadcrumb: "Notifications",
+          requiredAction: "view" as const,
         },
       },
       {
@@ -169,6 +174,7 @@ export const appRoutes: RouteRecordRaw[] = [
           requiresAuth: true,
           roles: ["ADMIN", "ACADEMIC_AFFAIRS"],
           breadcrumb: "Anti-Cheat Review",
+          requiredAction: "review" as const,
         },
       },
       {
@@ -180,6 +186,7 @@ export const appRoutes: RouteRecordRaw[] = [
           requiresAuth: true,
           roles: ["STUDENT"],
           breadcrumb: "Inbox",
+          requiredAction: "view" as const,
         },
       },
       {
@@ -191,6 +198,7 @@ export const appRoutes: RouteRecordRaw[] = [
           requiresAuth: true,
           roles: ["ADMIN"],
           breadcrumb: "User Management",
+          requiredAction: "view" as const,
         },
       },
       {
@@ -202,6 +210,7 @@ export const appRoutes: RouteRecordRaw[] = [
           requiresAuth: true,
           roles: ["ADMIN"],
           breadcrumb: "Job Monitor",
+          requiredAction: "view" as const,
         },
       },
       {
@@ -213,6 +222,7 @@ export const appRoutes: RouteRecordRaw[] = [
           requiresAuth: true,
           roles: ["ADMIN", "ACADEMIC_AFFAIRS"],
           breadcrumb: "Audit Logs",
+          requiredAction: "view" as const,
         },
       },
       {
@@ -224,6 +234,7 @@ export const appRoutes: RouteRecordRaw[] = [
           requiresAuth: true,
           roles: ["ADMIN", "ACADEMIC_AFFAIRS"],
           breadcrumb: "Campus & Rooms",
+          requiredAction: "view" as const,
         },
       },
       {
@@ -235,6 +246,7 @@ export const appRoutes: RouteRecordRaw[] = [
           requiresAuth: true,
           roles: ["STUDENT"],
           breadcrumb: "My Exams",
+          requiredAction: "view" as const,
         },
       },
       {
@@ -247,6 +259,7 @@ export const appRoutes: RouteRecordRaw[] = [
           requiresAuth: true,
           roles: ["STUDENT"],
           breadcrumb: "Preferences",
+          requiredAction: "view" as const,
         },
       },
       {

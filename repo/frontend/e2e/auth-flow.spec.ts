@@ -72,8 +72,8 @@ test.describe("Route Protection", () => {
   test("redirect query parameter is preserved", async ({ page }) => {
     await page.goto("/admin/audit-logs");
     await expect(page).toHaveURL(/\/login\?redirect=/);
-    const url = page.url();
-    expect(url).toContain("redirect=%2Fadmin%2Faudit-logs");
+    const redirect = new URL(page.url()).searchParams.get("redirect");
+    expect(redirect).toBe("/admin/audit-logs");
   });
 });
 

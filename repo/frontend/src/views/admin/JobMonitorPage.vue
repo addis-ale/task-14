@@ -5,10 +5,12 @@ import { api, unwrap } from "@/api";
 import { handleApiError, showSuccess } from "@/utils/toast";
 import { formatDateTime } from "@/utils/date";
 import { useI18n } from "@/i18n";
+import { useRBAC } from "@/composables/useRBAC";
 import type { PageData } from "@/types/api";
 import type { TableColumn } from "@/types/ui";
 
 const { t } = useI18n();
+const { can } = useRBAC();
 const filters = reactive({ jobType: "", status: "" });
 const tableKey = ref(0);
 
@@ -68,6 +70,9 @@ async function openDetail(row: Record<string, unknown>): Promise<void> {
 }
 
 async function retry(row: Record<string, unknown>): Promise<void> {
+  if (!can("update")) {
+    return;
+  }
   try {
     await unwrap(api.post(`/jobs/${row.id}/retry`));
     showSuccess(t("common.success"));
@@ -122,7 +127,7 @@ async function retry(row: Record<string, unknown>): Promise<void> {
         <div class="row-actions">
           <button type="button" @click.stop="openDetail(row)">{{ t("jobs.detail") }}</button>
           <button
-            v-if="row.status === 'FAILED'"
+            v-if="row.status === 'FAILED' && can('update')"
             type="button"
             class="retry-btn"
             @click.stop="retry(row)"

@@ -3,8 +3,10 @@ import { onMounted, reactive, ref } from "vue";
 import { api, unwrap } from "@/api";
 import { handleApiError, showSuccess } from "@/utils/toast";
 import { useI18n } from "@/i18n";
+import { useRBAC } from "@/composables/useRBAC";
 
 const { t } = useI18n();
+const { can } = useRBAC();
 
 interface Room {
   id: number;
@@ -163,8 +165,8 @@ onMounted(() => {
             <small>{{ campus.rooms.length }} {{ t("campus.roomName") }}</small>
           </div>
           <div class="campus-actions" @click.stop>
-            <button type="button" @click="openEditCampus(campus)">{{ t("common.edit") }}</button>
-            <button type="button" @click="openAddRoom(campus.id)">{{ t("campus.addRoom") }}</button>
+            <button v-if="can('update')" type="button" @click="openEditCampus(campus)">{{ t("common.edit") }}</button>
+            <button v-if="can('create')" type="button" @click="openAddRoom(campus.id)">{{ t("campus.addRoom") }}</button>
           </div>
         </div>
 
@@ -191,14 +193,14 @@ onMounted(() => {
               </div>
               <small>{{ room.usedCapacity || 0 }}/{{ room.capacity }}</small>
             </div>
-            <button type="button" @click="openEditRoom(campus.id, room)">{{ t("common.edit") }}</button>
+            <button v-if="can('update')" type="button" @click="openEditRoom(campus.id, room)">{{ t("common.edit") }}</button>
           </div>
         </div>
       </div>
     </div>
 
     <!-- Campus Dialog -->
-    <div v-if="showCampusDialog" class="modal-backdrop" role="dialog" aria-modal="true">
+    <div v-if="showCampusDialog && can(editingCampusId ? 'update' : 'create')" class="modal-backdrop" role="dialog" aria-modal="true">
       <div class="modal card">
         <h3>{{ editingCampusId ? t("campus.editCampus") : t("campus.addCampus") }}</h3>
         <form @submit.prevent="saveCampus" @keydown.esc="showCampusDialog = false">
@@ -215,7 +217,7 @@ onMounted(() => {
     </div>
 
     <!-- Room Dialog -->
-    <div v-if="showRoomDialog" class="modal-backdrop" role="dialog" aria-modal="true">
+    <div v-if="showRoomDialog && can(editingRoomId ? 'update' : 'create')" class="modal-backdrop" role="dialog" aria-modal="true">
       <div class="modal card">
         <h3>{{ editingRoomId ? t("campus.editRoom") : t("campus.addRoom") }}</h3>
         <form @submit.prevent="saveRoom" @keydown.esc="showRoomDialog = false">

@@ -47,6 +47,9 @@ async function saveSeat(
   row: Record<string, unknown>,
   seatNo: string,
 ): Promise<void> {
+  if (!can("update")) {
+    return;
+  }
   await unwrap(
     api.put(`/sessions/${filters.sessionId}/candidates/${row.studentId}/seat`, {
       seatNo,
@@ -100,7 +103,7 @@ function exportData(type: "csv" | "xlsx"): void {
       @loaded="cacheRows"
     >
       <template #actions="{ row }">
-        <button type="button" @click.stop="promptSeat(row)">
+        <button v-if="can('update')" type="button" @click.stop="promptSeat(row)">
           改座位 Edit Seat
         </button>
       </template>

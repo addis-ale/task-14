@@ -5,8 +5,10 @@ import FormBuilder from "@/components/FormBuilder/FormBuilder.vue";
 import { api, unwrap } from "@/api";
 import { handleApiError, showSuccess } from "@/utils/toast";
 import { useI18n } from "@/i18n";
+import { useRBAC } from "@/composables/useRBAC";
 
 const { t } = useI18n();
+const { can } = useRBAC();
 const router = useRouter();
 
 const model = reactive<Record<string, unknown>>({
@@ -85,6 +87,9 @@ function openPreview(payload: Record<string, unknown>) {
 }
 
 async function createDraft(): Promise<void> {
+  if (!can("create")) {
+    return;
+  }
   error.value = "";
   try {
     const result = await unwrap(
@@ -110,7 +115,7 @@ async function createDraft(): Promise<void> {
 }
 
 async function submitForReview(): Promise<void> {
-  if (!createdNotifId.value) return;
+  if (!createdNotifId.value || !can("review")) return;
   try {
     await unwrap(api.post(`/notifications/${createdNotifId.value}/submit-review`));
     notifStatus.value = "PENDING_REVIEW";
@@ -121,7 +126,7 @@ async function submitForReview(): Promise<void> {
 }
 
 async function publishNotification(): Promise<void> {
-  if (!createdNotifId.value) return;
+  if (!createdNotifId.value || !can("publish")) return;
   try {
     await unwrap(api.post(`/notifications/${createdNotifId.value}/publish`));
     showSuccess(t("common.success"));
@@ -159,13 +164,13 @@ async function publishNotification(): Promise<void> {
       </div>
       <div class="workflow-actions">
         <button
-          v-if="notifStatus === 'DRAFT'"
+          v-if="notifStatus === 'DRAFT' && can('review')"
           type="button"
           class="primary-btn"
           @click="submitForReview"
         >{{ t("notifications.submitForReview") }}</button>
         <button
-          v-if="notifStatus === 'APPROVED'"
+          v-if="notifStatus === 'APPROVED' && can('publish')"
           type="button"
           class="publish-btn"
           @click="publishNotification"
@@ -211,7 +216,7 @@ async function publishNotification(): Promise<void> {
         </div>
 
         <div class="modal-actions">
-          <button type="button" class="primary-btn" @click="createDraft">
+          <button v-if="can('create')" type="button" class="primary-btn" @click="createDraft">
             {{ t("common.create") }} ({{ t("notifications.draft") }})
           </button>
           <button type="button" class="outline-btn" @click="showPreview = false">
