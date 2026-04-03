@@ -70,3 +70,7 @@ venv/s
 .venv/
 /convert_ai_session.py
 .claude/
+/session-1.json
+/session-2.json
+**/sessions-2/
+sessions-2/

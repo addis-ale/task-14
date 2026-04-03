@@ -4,7 +4,10 @@
       "Bash(find:*)",
       "Bash(grep -v \":0$\")",
       "Bash(npx vite:*)",
-      "Bash(npx vitest:*)"
+      "Bash(npx vitest:*)",
+      "Bash(sed 's/.*\\\\.//')",
+      "Bash(npm test:*)",
+      "Bash(npx vue-tsc:*)"
     ]
   }
 }

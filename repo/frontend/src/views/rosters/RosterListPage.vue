@@ -3,8 +3,11 @@ import { reactive, ref } from "vue";
 import * as XLSX from "xlsx";
 import DataTable from "@/components/DataTable/DataTable.vue";
 import { api, unwrap } from "@/api";
+import { useRBAC } from "@/composables/useRBAC";
 import type { PageData } from "@/types/api";
 import type { TableColumn } from "@/types/ui";
+
+const { can } = useRBAC();
 
 const filters = reactive({
   sessionId: "",
@@ -83,11 +86,11 @@ function exportData(type: "csv" | "xlsx"): void {
         placeholder="请输入场次ID Session ID"
       />
       <input v-model="filters.status" placeholder="状态过滤 Status" />
-      <RouterLink class="primary-link" to="/rosters/import"
+      <RouterLink v-if="can('import')" class="primary-link" to="/rosters/import"
         >导入 Import</RouterLink
       >
-      <button type="button" @click="exportData('csv')">导出CSV</button>
-      <button type="button" @click="exportData('xlsx')">导出XLSX</button>
+      <button v-if="can('export')" type="button" @click="exportData('csv')">导出CSV</button>
+      <button v-if="can('export')" type="button" @click="exportData('xlsx')">导出XLSX</button>
     </div>
 
     <DataTable

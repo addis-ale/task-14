@@ -5,12 +5,16 @@ import { api, unwrap } from "@/api";
 import { formatDateTime } from "@/utils/date";
 import { handleApiError } from "@/utils/toast";
 import { useI18n } from "@/i18n";
+import { useRBAC } from "@/composables/useRBAC";
 import type { PageData } from "@/types/api";
 import type { TableColumn } from "@/types/ui";
+
+const { can } = useRBAC();
 
 const { t } = useI18n();
 const filters = reactive({ actorId: "", entityType: "", actionType: "", from: "", to: "" });
 const expandedRowId = ref<unknown>(null);
+const expandedRow = ref<Record<string, unknown> | null>(null);
 
 const resourceTypes = [
   "ExamSession", "Roster", "Notification", "User", "ComplianceReview",
@@ -38,7 +42,13 @@ async function fetcher(
 }
 
 function toggleRow(row: Record<string, unknown>) {
-  expandedRowId.value = expandedRowId.value === row.id ? null : row.id;
+  if (expandedRowId.value === row.id) {
+    expandedRowId.value = null;
+    expandedRow.value = null;
+  } else {
+    expandedRowId.value = row.id;
+    expandedRow.value = row;
+  }
 }
 
 function formatJson(data: unknown): string {
@@ -91,7 +101,7 @@ async function exportCsv(): Promise<void> {
         <h2>{{ t("audit.title") }}</h2>
         <p>{{ t("audit.subtitle") }}</p>
       </div>
-      <button type="button" class="outline-btn" @click="exportCsv">
+      <button v-if="can('export')" type="button" class="outline-btn" @click="exportCsv">
         {{ t("audit.exportCsv") }}
       </button>
     </header>
@@ -128,9 +138,9 @@ async function exportCsv(): Promise<void> {
     </DataTable>
 
     <!-- Expanded detail panel -->
-    <div v-if="expandedRowId !== null" class="detail-panel card">
-      <h4>{{ t("audit.details") }} (details_json)</h4>
-      <pre>{{ formatJson(expandedRowId) }}</pre>
+    <div v-if="expandedRow !== null" class="detail-panel card">
+      <h4>{{ t("audit.details") }} #{{ expandedRowId }}</h4>
+      <pre>{{ formatJson(expandedRow.detailsJson || expandedRow) }}</pre>
     </div>
   </section>
 </template>

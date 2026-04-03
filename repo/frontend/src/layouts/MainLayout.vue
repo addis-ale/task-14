@@ -22,7 +22,7 @@ const route = useRoute();
 const router = useRouter();
 const auth = useAuth();
 const authStore = useAuthStore();
-const { user, activeRole, sessionWarningVisible } = storeToRefs(authStore);
+const { user, activeRole, sessionWarningVisible, concurrentSessionDetected, activeSessions } = storeToRefs(authStore);
 const { locale, setLocale } = useI18n();
 
 // Badge counts
@@ -100,6 +100,16 @@ async function fetchBadges() {
   } catch {
     // silent
   }
+  // Periodically check for concurrent sessions
+  void authStore.checkConcurrentSessions();
+}
+
+function forceLogoutOthers(): void {
+  void authStore.forceLogoutOtherSessions();
+}
+
+function dismissConcurrentWarning(): void {
+  authStore.dismissConcurrentWarning();
 }
 
 async function onSwitchRole(event: Event): Promise<void> {
@@ -230,6 +240,39 @@ onBeforeUnmount(() => {
         <button class="primary-btn" type="button" @click="auth.extendSession">
           延长会话 Extend Session
         </button>
+      </div>
+    </div>
+
+    <!-- Concurrent session warning -->
+    <div
+      v-if="concurrentSessionDetected"
+      class="modal-backdrop"
+      role="dialog"
+      aria-modal="true"
+    >
+      <div class="modal card concurrent-modal">
+        <h3>检测到并发会话 Concurrent Session Detected</h3>
+        <p>您的账号在其他设备或浏览器中登录。为保障账号安全，建议终止其他会话。</p>
+        <p><small>Your account is active on another device/browser. For security, consider revoking other sessions.</small></p>
+        <div v-if="activeSessions.length > 0" class="session-list">
+          <div
+            v-for="session in activeSessions"
+            :key="session.sessionId"
+            class="session-item"
+            :class="{ 'current-session': session.current }"
+          >
+            <span>{{ session.device || 'Unknown device' }}</span>
+            <small>{{ session.current ? '当前会话 Current' : session.lastActiveAt }}</small>
+          </div>
+        </div>
+        <div class="modal-actions">
+          <button class="danger-btn" type="button" @click="forceLogoutOthers">
+            终止其他会话 Revoke Others
+          </button>
+          <button class="outline-btn" type="button" @click="dismissConcurrentWarning">
+            暂时忽略 Dismiss
+          </button>
+        </div>
       </div>
     </div>
 
@@ -520,6 +563,31 @@ nav {
   margin-top: 12px;
   display: flex;
   gap: 8px;
+}
+
+.concurrent-modal .session-list {
+  display: grid;
+  gap: 6px;
+  margin: 10px 0;
+}
+
+.session-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 10px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  font-size: 0.88rem;
+}
+
+.session-item small {
+  color: var(--color-text-soft);
+}
+
+.session-item.current-session {
+  background: #e8f4fb;
+  border-color: #9ac4d9;
 }
 
 @media (max-width: 980px) {

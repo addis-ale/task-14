@@ -11,30 +11,32 @@ import type { LoginPayload, UserProfile } from "@/types/auth";
 const STORAGE_KEY = "secure-exam-auth";
 const REMEMBER_DEVICE_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
 
-// Obfuscate stored auth data to reduce plain-text credential exposure in Web Storage
-function encodePayload(data: string): string {
-  try { return btoa(unescape(encodeURIComponent(data))); } catch { return data; }
-}
-function decodePayload(encoded: string): string {
-  try { return decodeURIComponent(escape(atob(encoded))); } catch { return encoded; }
-}
-
-interface PersistedAuth {
-  token: string;
-  sessionSecret: string;
+/**
+ * Only non-sensitive profile data is persisted to Web Storage.
+ * Sensitive auth artifacts (token, sessionSecret) are kept in memory only
+ * and are expected to be delivered/managed via HttpOnly secure cookies
+ * set by the server on /auth/login and cleared on /auth/logout.
+ */
+interface PersistedProfile {
   user: UserProfile;
   rememberDevice: boolean;
   loginAt: number;
 }
 
 export const useAuthStore = defineStore("auth", () => {
+  // Sensitive secrets — memory-only, never persisted to Web Storage
   const token = ref("");
   const sessionSecret = ref("");
+
   const user = ref<UserProfile | null>(null);
   const rememberDevice = ref(false);
   const loginAt = ref(0);
   const pendingDrafts = ref<Array<{ formKey: string; updatedAt: string }>>([]);
   const sessionWarningVisible = ref(false);
+
+  // Concurrent session detection
+  const concurrentSessionDetected = ref(false);
+  const activeSessions = ref<Array<{ sessionId: string; device: string; lastActiveAt: string; current: boolean }>>([]);
 
   const isAuthenticated = computed(() => Boolean(token.value && user.value));
   const activeRole = computed(() => user.value?.activeRole || "");
@@ -60,6 +62,8 @@ export const useAuthStore = defineStore("auth", () => {
       }),
     );
 
+    // Server sets HttpOnly secure cookies for token/sessionSecret.
+    // We keep them in memory for the current session's API signing only.
     token.value = payload.token;
     sessionSecret.value = payload.sessionSecret || payload.token;
     user.value = payload.user;
@@ -81,13 +85,16 @@ export const useAuthStore = defineStore("auth", () => {
     }
 
     logger.info("Auth", `User logged in: ${payload.user.username}`);
-    persistSession();
+    persistProfile();
+
+    // Check for concurrent sessions after successful login
+    void checkConcurrentSessions();
   }
 
   async function fetchProfile(): Promise<void> {
     const profile = await unwrap(api.get<UserProfile>("/auth/me"));
     user.value = profile;
-    persistSession();
+    persistProfile();
   }
 
   async function switchRole(role: string): Promise<void> {
@@ -102,7 +109,7 @@ export const useAuthStore = defineStore("auth", () => {
         activeRole: data.activeRole,
         scopes: (data.scopes as UserProfile["scopes"]) || user.value.scopes,
       };
-      persistSession();
+      persistProfile();
     }
 
     // Cross-store cleanup: reset data stores to avoid stale data from previous role
@@ -135,7 +142,7 @@ export const useAuthStore = defineStore("auth", () => {
     }
 
     try {
-      const parsed = JSON.parse(decodePayload(raw)) as PersistedAuth;
+      const parsed = JSON.parse(raw) as PersistedProfile;
 
       // Remember-device TTL: if from localStorage, check 7-day expiry
       if (localRaw && parsed.rememberDevice && parsed.loginAt) {
@@ -147,12 +154,29 @@ export const useAuthStore = defineStore("auth", () => {
         }
       }
 
-      token.value = parsed.token;
-      sessionSecret.value = parsed.sessionSecret;
+      // Restore non-sensitive profile only.
+      // Token/sessionSecret must be re-established via server cookie or re-login.
       user.value = parsed.user;
       rememberDevice.value = parsed.rememberDevice;
       loginAt.value = parsed.loginAt;
+
+      // Attempt to re-establish auth session from server-managed cookie
+      reestablishSession();
     } catch {
+      clearStorage();
+    }
+  }
+
+  async function reestablishSession(): Promise<void> {
+    try {
+      const profile = await unwrap(api.get<UserProfile>("/auth/me"));
+      user.value = profile;
+      // Server responds with session info if cookie is still valid
+      token.value = "cookie-session";
+      sessionSecret.value = "cookie-managed";
+    } catch {
+      // Cookie expired or invalid — require re-login
+      user.value = null;
       clearStorage();
     }
   }
@@ -179,6 +203,7 @@ export const useAuthStore = defineStore("auth", () => {
     }
 
     logger.info("Auth", `Logout: ${reason}`);
+    // Clear all auth state including in-memory secrets
     token.value = "";
     sessionSecret.value = "";
     user.value = null;
@@ -192,20 +217,23 @@ export const useAuthStore = defineStore("auth", () => {
     }
   }
 
-  function persistSession(): void {
-    if (!token.value || !user.value) {
+  /**
+   * Persist only non-sensitive profile data to Web Storage.
+   * Token and sessionSecret are NEVER written to storage —
+   * they are managed via HttpOnly secure cookies by the server.
+   */
+  function persistProfile(): void {
+    if (!user.value) {
       return;
     }
 
-    const payload: PersistedAuth = {
-      token: token.value,
-      sessionSecret: sessionSecret.value,
+    const payload: PersistedProfile = {
       user: user.value,
       rememberDevice: rememberDevice.value,
       loginAt: loginAt.value,
     };
 
-    const raw = encodePayload(JSON.stringify(payload));
+    const raw = JSON.stringify(payload);
     if (rememberDevice.value) {
       localStorage.setItem(STORAGE_KEY, raw);
       sessionStorage.removeItem(STORAGE_KEY);
@@ -234,6 +262,42 @@ export const useAuthStore = defineStore("auth", () => {
     return path;
   }
 
+  /**
+   * Check for concurrent sessions and populate activeSessions list.
+   * Called after login and periodically to detect other active sessions.
+   */
+  async function checkConcurrentSessions(): Promise<void> {
+    try {
+      const data = await unwrap(api.get("/auth/sessions"));
+      const sessions = data.sessions || data || [];
+      activeSessions.value = sessions;
+      concurrentSessionDetected.value = sessions.filter(
+        (s: { current: boolean }) => !s.current,
+      ).length > 0;
+    } catch {
+      // Non-critical — silently ignore
+      concurrentSessionDetected.value = false;
+    }
+  }
+
+  /**
+   * Force-logout all other sessions except the current one.
+   */
+  async function forceLogoutOtherSessions(): Promise<void> {
+    try {
+      await unwrap(api.post("/auth/sessions/revoke-others"));
+      concurrentSessionDetected.value = false;
+      activeSessions.value = activeSessions.value.filter((s) => s.current);
+      logger.info("Auth", "Other sessions revoked");
+    } catch {
+      // silent
+    }
+  }
+
+  function dismissConcurrentWarning(): void {
+    concurrentSessionDetected.value = false;
+  }
+
   return {
     token,
     sessionSecret,
@@ -242,6 +306,8 @@ export const useAuthStore = defineStore("auth", () => {
     loginAt,
     pendingDrafts,
     sessionWarningVisible,
+    concurrentSessionDetected,
+    activeSessions,
     isAuthenticated,
     activeRole,
     availableRoles,
@@ -254,6 +320,9 @@ export const useAuthStore = defineStore("auth", () => {
     setPendingDrafts,
     setSessionWarning,
     validateRedirect,
+    checkConcurrentSessions,
+    forceLogoutOtherSessions,
+    dismissConcurrentWarning,
   };
 });
 

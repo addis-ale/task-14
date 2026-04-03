@@ -45,11 +45,15 @@ async function submit(): Promise<void> {
     const safePath = authStore.validateRedirect(rawRedirect);
     await router.push(safePath);
   } catch (error) {
-    const message = (error as { response?: { data?: { message?: string } } })
-      ?.response?.data?.message;
-    errorMessage.value = message || "登录失败，请检查用户名和密码";
-    logger.warn("Login", "Login failed");
-    if (errorMessage.value.toLowerCase().includes("locked")) {
+    const resp = (error as { response?: { status?: number; data?: { code?: string; message?: string } } })
+      ?.response;
+    const statusCode = resp?.status;
+    const errorCode = resp?.data?.code;
+
+    // Use generic messages to prevent account enumeration.
+    // Never display raw backend error text to the user.
+    if (statusCode === 423 || errorCode === "ACCOUNT_LOCKED") {
+      errorMessage.value = "账号已锁定，请稍后再试 Account locked, please try again later";
       lockSeconds.value = 300;
       const timer = window.setInterval(() => {
         lockSeconds.value = Math.max(0, lockSeconds.value - 1);
@@ -57,7 +61,13 @@ async function submit(): Promise<void> {
           window.clearInterval(timer);
         }
       }, 1000);
+    } else if (statusCode === 429 || errorCode === "RATE_LIMITED") {
+      errorMessage.value = "请求过于频繁，请稍后重试 Too many attempts, please wait";
+    } else {
+      errorMessage.value = "用户名或密码错误 Invalid username or password";
     }
+
+    logger.warn("Login", `Login failed: status=${statusCode || "unknown"}`);
   } finally {
     loading.value = false;
   }

@@ -6,8 +6,11 @@ import { api, unwrap } from "@/api";
 import { handleApiError, showSuccess } from "@/utils/toast";
 import { formatDateTime } from "@/utils/date";
 import { useI18n } from "@/i18n";
+import { useRBAC } from "@/composables/useRBAC";
 import type { PageData } from "@/types/api";
 import type { TableColumn } from "@/types/ui";
+
+const { can } = useRBAC();
 
 const { t } = useI18n();
 const router = useRouter();
@@ -134,7 +137,7 @@ async function retryDelivery(delivery: Record<string, unknown>): Promise<void> {
         <h2>{{ t("notifications.title") }}</h2>
         <p>{{ t("notifications.subtitle") }}</p>
       </div>
-      <button type="button" class="primary-btn" @click="router.push('/notifications/create')">
+      <button v-if="can('create')" type="button" class="primary-btn" @click="router.push('/notifications/create')">
         {{ t("notifications.create") }}
       </button>
     </header>
@@ -176,12 +179,12 @@ async function retryDelivery(delivery: Record<string, unknown>): Promise<void> {
       <template #actions="{ row }">
         <div class="row-actions">
           <button
-            v-if="row.status === 'DRAFT'"
+            v-if="row.status === 'DRAFT' && can('review')"
             type="button"
             @click.stop="submitReview(row)"
           >{{ t("notifications.submitForReview") }}</button>
           <button
-            v-if="row.status === 'APPROVED'"
+            v-if="row.status === 'APPROVED' && can('publish')"
             type="button"
             class="publish-btn"
             @click.stop="publish(row)"

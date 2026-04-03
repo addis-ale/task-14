@@ -58,18 +58,33 @@ describe("Auth Store", () => {
     expect(store.isAuthenticated).toBe(true);
   });
 
-  it("login with remember persists to localStorage (obfuscated)", async () => {
+  it("login with remember persists profile to localStorage without secrets", async () => {
     const store = useAuthStore();
     await store.login({ username: "admin", password: "pass", remember: true });
 
     const stored = localStorage.getItem("secure-exam-auth");
     expect(stored).toBeTruthy();
-    // Storage is base64-encoded — should NOT be plain JSON
-    expect(stored!.startsWith("{")).toBe(false);
-    // Decode and verify content
-    const decoded = JSON.parse(decodeURIComponent(escape(atob(stored!))));
-    expect(decoded.token).toBe("test-token-123");
-    expect(decoded.rememberDevice).toBe(true);
+    const parsed = JSON.parse(stored!);
+    // Profile data is persisted
+    expect(parsed.user.username).toBe("admin");
+    expect(parsed.rememberDevice).toBe(true);
+    // Sensitive secrets must NOT be in storage
+    expect(parsed.token).toBeUndefined();
+    expect(parsed.sessionSecret).toBeUndefined();
+  });
+
+  it("login without remember persists profile to sessionStorage without secrets", async () => {
+    const store = useAuthStore();
+    await store.login({ username: "admin", password: "pass", remember: false });
+
+    const stored = sessionStorage.getItem("secure-exam-auth");
+    expect(stored).toBeTruthy();
+    const parsed = JSON.parse(stored!);
+    // Profile data is persisted
+    expect(parsed.user.username).toBe("admin");
+    // Sensitive secrets must NOT be in storage
+    expect(parsed.token).toBeUndefined();
+    expect(parsed.sessionSecret).toBeUndefined();
   });
 
   it("logout clears all auth state and storage", async () => {
@@ -87,39 +102,36 @@ describe("Auth Store", () => {
     expect(sessionStorage.getItem("secure-exam-auth")).toBeNull();
   });
 
-  it("restoreSession loads from localStorage when valid (encoded)", async () => {
+  it("restoreSession loads profile from localStorage but not secrets", async () => {
     const data = {
-      token: "restored-token",
-      sessionSecret: "restored-secret",
       user: { id: 1, username: "admin", roles: ["ADMIN"], activeRole: "ADMIN" },
       rememberDevice: true,
       loginAt: Date.now(),
     };
-    const encoded = btoa(unescape(encodeURIComponent(JSON.stringify(data))));
-    localStorage.setItem("secure-exam-auth", encoded);
+    localStorage.setItem("secure-exam-auth", JSON.stringify(data));
 
     const store = useAuthStore();
     store.restoreSession();
 
-    expect(store.token).toBe("restored-token");
-    expect(store.isAuthenticated).toBe(true);
+    // Profile is restored
+    expect(store.user).toBeTruthy();
+    expect(store.user!.username).toBe("admin");
+    // Secrets are NOT restored from storage — must come from server cookie
+    // (reestablishSession is called async to validate cookie)
   });
 
   it("restoreSession rejects expired remember-device sessions (>7 days)", () => {
     const data = {
-      token: "old-token",
-      sessionSecret: "old-secret",
       user: { id: 1, username: "admin", roles: ["ADMIN"], activeRole: "ADMIN" },
       rememberDevice: true,
       loginAt: Date.now() - 8 * 24 * 60 * 60 * 1000,
     };
-    const encoded = btoa(unescape(encodeURIComponent(JSON.stringify(data))));
-    localStorage.setItem("secure-exam-auth", encoded);
+    localStorage.setItem("secure-exam-auth", JSON.stringify(data));
 
     const store = useAuthStore();
     store.restoreSession();
 
-    expect(store.token).toBe("");
+    expect(store.user).toBeNull();
     expect(store.isAuthenticated).toBe(false);
     expect(localStorage.getItem("secure-exam-auth")).toBeNull();
   });

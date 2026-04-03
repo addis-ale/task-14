@@ -6,8 +6,11 @@ import { handleApiError, showSuccess } from "@/utils/toast";
 import { formatDateTime } from "@/utils/date";
 import { maskStudentId } from "@/utils/pii";
 import { useI18n } from "@/i18n";
+import { useRBAC } from "@/composables/useRBAC";
 import type { TableColumn } from "@/types/ui";
 import type { PageData } from "@/types/api";
+
+const { can } = useRBAC();
 
 const { t } = useI18n();
 const activeTab = ref("PENDING");
@@ -216,7 +219,10 @@ function getScoreData(flag: Record<string, unknown>): { student: number; classAv
                 <small>时间区间 Time intervals</small>
               </div>
             </template>
-            <div v-else class="data-unavailable">数据暂不可用 Activity data unavailable</div>
+            <div v-else class="data-unavailable">
+              <strong>后端数据缺失 Backend data not available</strong>
+              <p>活动数据未从服务端返回，无法显示时间线图表。Activity timeline data was not returned by the server.</p>
+            </div>
           </div>
 
           <!-- IDENTICAL_SUBMISSIONS: Side-by-side -->
@@ -234,7 +240,10 @@ function getScoreData(flag: Record<string, unknown>): { student: number; classAv
                 </div>
               </div>
             </template>
-            <div v-else class="data-unavailable">数据暂不可用 Submission data unavailable</div>
+            <div v-else class="data-unavailable">
+              <strong>后端数据缺失 Backend data not available</strong>
+              <p>提交对比数据未从服务端返回，无法显示对比视图。Submission comparison data was not returned by the server.</p>
+            </div>
           </div>
 
           <!-- ABNORMAL_SCORE_DELTA: Score chart -->
@@ -264,7 +273,10 @@ function getScoreData(flag: Record<string, unknown>): { student: number; classAv
               </div>
             </div>
             </template>
-            <div v-else class="data-unavailable">数据暂不可用 Score data unavailable</div>
+            <div v-else class="data-unavailable">
+              <strong>后端数据缺失 Backend data not available</strong>
+              <p>分数分布数据未从服务端返回，无法显示图表。Score distribution data was not returned by the server.</p>
+            </div>
           </div>
 
           <!-- Fallback for unknown types -->
@@ -274,7 +286,7 @@ function getScoreData(flag: Record<string, unknown>): { student: number; classAv
         </section>
 
         <!-- Decision form -->
-        <section v-if="selectedFlag.status === 'PENDING'" class="decision-section">
+        <section v-if="selectedFlag.status === 'PENDING' && can('review')" class="decision-section">
           <h4>{{ t("antiCheat.decision") }}</h4>
           <p class="notice">{{ t("antiCheat.humanReviewOnly") }}</p>
           <div class="radio-group">
@@ -318,11 +330,22 @@ function getScoreData(flag: Record<string, unknown>): { student: number; classAv
 .data-unavailable {
   padding: 16px;
   text-align: center;
-  color: var(--color-text-soft);
-  background: #f9fbfc;
-  border: 1px dashed var(--color-border);
+  color: var(--color-warning);
+  background: #fef9e7;
+  border: 1px dashed #f0d78c;
   border-radius: 8px;
   font-size: 0.88rem;
+}
+
+.data-unavailable strong {
+  display: block;
+  margin-bottom: 4px;
+}
+
+.data-unavailable p {
+  margin: 0;
+  color: var(--color-text-soft);
+  font-size: 0.82rem;
 }
 
 h2, h3, h4, h5 {

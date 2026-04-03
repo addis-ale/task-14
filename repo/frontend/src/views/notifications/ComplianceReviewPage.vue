@@ -5,8 +5,11 @@ import { api, unwrap } from "@/api";
 import { handleApiError, showSuccess } from "@/utils/toast";
 import { formatDateTime } from "@/utils/date";
 import { useI18n } from "@/i18n";
+import { useRBAC } from "@/composables/useRBAC";
 import type { TableColumn } from "@/types/ui";
 import type { PageData } from "@/types/api";
+
+const { can } = useRBAC();
 
 const { t } = useI18n();
 const activeTab = ref("PENDING");
@@ -179,7 +182,7 @@ const statusClass = computed(() => (status: unknown) => {
             </div>
           </section>
 
-          <section v-if="selectedReview.status === 'PENDING'" class="action-section">
+          <section v-if="selectedReview.status === 'PENDING' && can('review')" class="action-section">
             <label class="field">
               <span>{{ t("compliance.comments") }}</span>
               <textarea

@@ -5,12 +5,26 @@ export interface ScopeDto {
   subjectIds?: number[];
 }
 
+/** Fine-grained action permissions returned by the server per-role */
+export type ActionPermission =
+  | "view"
+  | "enter"
+  | "import"
+  | "review"
+  | "publish"
+  | "create"
+  | "update"
+  | "delete"
+  | "export"
+  | "assign";
+
 export interface UserProfile {
   id: number;
   username: string;
   roles: string[];
   activeRole: string;
   scopes?: ScopeDto;
+  permissions?: ActionPermission[];
 }
 
 export interface LoginPayload {

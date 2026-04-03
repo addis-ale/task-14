@@ -4,8 +4,11 @@ import DataTable from "@/components/DataTable/DataTable.vue";
 import { api, unwrap } from "@/api";
 import { handleApiError, showSuccess } from "@/utils/toast";
 import { useI18n } from "@/i18n";
+import { useRBAC } from "@/composables/useRBAC";
 import type { PageData } from "@/types/api";
 import type { TableColumn } from "@/types/ui";
+
+const { can } = useRBAC();
 
 const { t } = useI18n();
 const filters = reactive({ role: "", status: "", search: "" });
@@ -205,7 +208,7 @@ function toggleRole(role: string) {
         <h2>{{ t("users.title") }}</h2>
         <p>{{ t("users.subtitle") }}</p>
       </div>
-      <button type="button" class="primary-btn" @click="showCreateDialog = true">
+      <button v-if="can('create')" type="button" class="primary-btn" @click="showCreateDialog = true">
         {{ t("users.createUser") }}
       </button>
     </header>
@@ -250,10 +253,10 @@ function toggleRole(role: string) {
       </template>
       <template #actions="{ row }">
         <div class="row-actions">
-          <button type="button" @click.stop="openEdit(row)">{{ t("common.edit") }}</button>
-          <button type="button" @click.stop="confirmDelete(row)">{{ t("users.softDelete") }}</button>
-          <button type="button" @click.stop="unlock(row)">{{ t("users.unlock") }}</button>
-          <button type="button" @click.stop="toggleConcurrentSessions(row)">{{ t("users.toggleSessions") }}</button>
+          <button v-if="can('update')" type="button" @click.stop="openEdit(row)">{{ t("common.edit") }}</button>
+          <button v-if="can('delete')" type="button" @click.stop="confirmDelete(row)">{{ t("users.softDelete") }}</button>
+          <button v-if="can('update')" type="button" @click.stop="unlock(row)">{{ t("users.unlock") }}</button>
+          <button v-if="can('update')" type="button" @click.stop="toggleConcurrentSessions(row)">{{ t("users.toggleSessions") }}</button>
         </div>
       </template>
     </DataTable>

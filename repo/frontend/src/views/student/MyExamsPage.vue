@@ -1,17 +1,27 @@
 <script setup lang="ts">
 import { onMounted, ref } from "vue";
 import { api, unwrap } from "@/api";
+import { handleApiError } from "@/utils/toast";
 
 const loading = ref(false);
+const loadError = ref("");
 const exams = ref<Array<Record<string, unknown>>>([]);
 
-onMounted(async () => {
+async function fetchExams(): Promise<void> {
   loading.value = true;
+  loadError.value = "";
   try {
     exams.value = await unwrap(api.get("/my/exams"));
+  } catch (err) {
+    loadError.value = "加载失败，请重试 Failed to load exams";
+    handleApiError(err);
   } finally {
     loading.value = false;
   }
+}
+
+onMounted(() => {
+  void fetchExams();
 });
 </script>
 
@@ -23,6 +33,11 @@ onMounted(async () => {
     </header>
 
     <div v-if="loading" class="card loading">加载中 Loading...</div>
+
+    <div v-else-if="loadError" class="card error-state">
+      <p>{{ loadError }}</p>
+      <button type="button" @click="fetchExams">重试 Retry</button>
+    </div>
 
     <div v-else-if="exams.length === 0" class="card loading">
       暂无考试安排 No exam schedule
@@ -65,6 +80,32 @@ small {
 
 .loading {
   padding: 14px;
+}
+
+.error-state {
+  padding: 14px;
+  background: #fdeeed;
+  border-color: #f7c6c2;
+  color: #9e3a35;
+  display: grid;
+  gap: 10px;
+}
+
+.error-state p {
+  margin: 0;
+  color: inherit;
+}
+
+.error-state button {
+  width: fit-content;
+  min-height: 36px;
+  border-radius: 10px;
+  border: 1px solid #f7c6c2;
+  background: white;
+  color: #9e3a35;
+  padding: 0 14px;
+  font: inherit;
+  cursor: pointer;
 }
 
 .calendar-grid {

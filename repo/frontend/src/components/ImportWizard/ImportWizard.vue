@@ -2,6 +2,14 @@
 import { computed, ref } from "vue";
 import * as XLSX from "xlsx";
 
+/** Column-level validation rule */
+interface ColumnValidator {
+  column: string;
+  label: string;
+  pattern: RegExp;
+  message: string;
+}
+
 interface PreviewRow {
   index: number;
   status: "valid" | "invalid" | "duplicate";
@@ -12,6 +20,7 @@ interface PreviewRow {
 
 const props = defineProps<{
   requiredColumns: string[];
+  columnValidators?: ColumnValidator[];
 }>();
 
 const emit = defineEmits<{
@@ -23,6 +32,21 @@ const previewRows = ref<PreviewRow[]>([]);
 const columns = ref<string[]>([]);
 const loading = ref(false);
 
+/** Default format validators for common column types */
+const defaultValidators: ColumnValidator[] = [
+  { column: "studentNo", label: "Student No", pattern: /^[A-Za-z0-9]{3,20}$/, message: "Invalid student ID format (alphanumeric, 3-20 chars)" },
+  { column: "seatNo", label: "Seat No", pattern: /^[A-Za-z0-9\-]{1,10}$/, message: "Invalid seat number format" },
+  { column: "examDate", label: "Exam Date", pattern: /^\d{4}[-/]\d{2}[-/]\d{2}$/, message: "Invalid date format (expected YYYY-MM-DD)" },
+  { column: "startTime", label: "Start Time", pattern: /^\d{2}:\d{2}(:\d{2})?$/, message: "Invalid time format (expected HH:MM)" },
+  { column: "endTime", label: "End Time", pattern: /^\d{2}:\d{2}(:\d{2})?$/, message: "Invalid time format (expected HH:MM)" },
+  { column: "email", label: "Email", pattern: /^[^\s@]+@[^\s@]+\.[^\s@]+$/, message: "Invalid email format" },
+  { column: "phone", label: "Phone", pattern: /^[\d\-+() ]{7,20}$/, message: "Invalid phone format" },
+];
+
+const activeValidators = computed<ColumnValidator[]>(() => {
+  return props.columnValidators || defaultValidators;
+});
+
 const selectedValidRows = computed(() =>
   previewRows.value.filter((row) => row.status === "valid" && row.selected),
 );
@@ -33,6 +57,16 @@ function onFileInput(event: Event): void {
     return;
   }
   void parseFile(files[0]);
+}
+
+function validateRowFormat(normalized: Record<string, string>): { valid: boolean; reason: string } {
+  for (const validator of activeValidators.value) {
+    const value = normalized[validator.column];
+    if (value && !validator.pattern.test(value)) {
+      return { valid: false, reason: `${validator.column}: ${validator.message}` };
+    }
+  }
+  return { valid: true, reason: "OK" };
 }
 
 async function parseFile(file: File): Promise<void> {
@@ -56,13 +90,22 @@ async function parseFile(file: File): Promise<void> {
       let status: PreviewRow["status"] = "valid";
       let reason = "OK";
 
+      // Check required fields
       const hasMissing = props.requiredColumns.some((col) => !normalized[col]);
       if (hasMissing) {
         status = "invalid";
         reason = "Missing required fields";
       } else if (seen.has(serialized)) {
+        // Check duplicates
         status = "duplicate";
         reason = "Duplicate row";
+      } else {
+        // Check domain format validity
+        const formatResult = validateRowFormat(normalized);
+        if (!formatResult.valid) {
+          status = "invalid";
+          reason = formatResult.reason;
+        }
       }
       seen.add(serialized);
 
@@ -135,7 +178,7 @@ function commit(): void {
               <td>
                 <span class="status" :class="row.status">{{ row.status }}</span>
               </td>
-              <td>{{ row.reason }}</td>
+              <td :title="row.reason">{{ row.reason }}</td>
               <td v-for="column in columns" :key="`${row.index}-${column}`">
                 {{ row.values[column] || "-" }}
               </td>

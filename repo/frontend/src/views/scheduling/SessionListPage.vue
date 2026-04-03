@@ -3,8 +3,11 @@ import { reactive } from "vue";
 import { useRouter } from "vue-router";
 import DataTable from "@/components/DataTable/DataTable.vue";
 import { api, unwrap } from "@/api";
+import { useRBAC } from "@/composables/useRBAC";
 import type { PageData } from "@/types/api";
 import type { TableColumn } from "@/types/ui";
+
+const { can } = useRBAC();
 
 const router = useRouter();
 
@@ -38,9 +41,14 @@ function toDetail(row: Record<string, unknown>): void {
 
 <template>
   <section class="page-grid">
-    <header>
-      <h2>考试场次列表</h2>
-      <p>Exam session list with term/grade/subject/date filters</p>
+    <header class="head-row">
+      <div>
+        <h2>考试场次列表</h2>
+        <p>Exam session list with term/grade/subject/date filters</p>
+      </div>
+      <button v-if="can('create')" type="button" class="primary-btn" @click="router.push('/scheduling/sessions/new')">
+        新建排考 Create Session
+      </button>
     </header>
 
     <DataTable
@@ -75,9 +83,28 @@ h2 {
   margin: 0;
 }
 
+.head-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
 header p {
   color: var(--color-text-soft);
   margin: 5px 0 0;
+}
+
+.primary-btn {
+  min-height: 36px;
+  border-radius: 10px;
+  border: 1px solid var(--color-primary);
+  background: var(--color-primary);
+  color: white;
+  padding: 0 14px;
+  font: inherit;
+  cursor: pointer;
 }
 
 .filters-row {

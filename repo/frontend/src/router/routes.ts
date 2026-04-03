@@ -1,11 +1,13 @@
 import type { RouteRecordRaw } from "vue-router";
 import type { RoleName } from "@/types/ui";
+import type { ActionPermission } from "@/types/auth";
 
 export interface RouteMetaAuth {
   title: string;
   requiresAuth?: boolean;
   roles?: RoleName[];
   breadcrumb?: string;
+  requiredAction?: ActionPermission;
 }
 
 export const appRoutes: RouteRecordRaw[] = [
@@ -67,6 +69,7 @@ export const appRoutes: RouteRecordRaw[] = [
           requiresAuth: true,
           roles: ["ADMIN", "ACADEMIC_AFFAIRS"],
           breadcrumb: "Create Session",
+          requiredAction: "create" as const,
         },
       },
       {
@@ -115,6 +118,7 @@ export const appRoutes: RouteRecordRaw[] = [
             "SUBJECT_TEACHER",
           ],
           breadcrumb: "Import",
+          requiredAction: "import" as const,
         },
       },
       {
@@ -139,6 +143,7 @@ export const appRoutes: RouteRecordRaw[] = [
           requiresAuth: true,
           roles: ["ADMIN", "ACADEMIC_AFFAIRS"],
           breadcrumb: "Create Notification",
+          requiredAction: "create" as const,
         },
       },
       {
@@ -151,6 +156,7 @@ export const appRoutes: RouteRecordRaw[] = [
           requiresAuth: true,
           roles: ["ADMIN", "ACADEMIC_AFFAIRS"],
           breadcrumb: "Compliance Reviews",
+          requiredAction: "review" as const,
         },
       },
       {
