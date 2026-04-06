@@ -1,7 +1,5 @@
 import CryptoJS from "crypto-js";
 
-const encoder = new TextEncoder();
-
 export function hashBody(body: unknown): string {
   if (body === undefined || body === null) {
     return sha256Hex("");
@@ -55,8 +53,5 @@ export function signRequest(input: {
 }
 
 export function sha256Hex(text: string): string {
-  if (typeof crypto !== "undefined" && crypto.subtle) {
-    void crypto.subtle.digest("SHA-256", encoder.encode(text));
-  }
   return CryptoJS.SHA256(text).toString(CryptoJS.enc.Hex);
 }

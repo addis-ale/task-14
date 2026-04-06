@@ -47,40 +47,14 @@ if [ "$MODE" = "all" ] || [ "$MODE" = "unit" ]; then
     echo -e "${CYAN}╰──────────────────────────────────────────────────────────────╯${NC}"
     echo ""
 
-    UNIT_SCRIPT="$SCRIPT_DIR/unit_tests/run_unit_tests.sh"
-    if [ -f "$UNIT_SCRIPT" ]; then
-        chmod +x "$UNIT_SCRIPT"
-        bash "$UNIT_SCRIPT"
-        UNIT_EXIT=$?
-    else
-        echo -e "${YELLOW}[WARN] Unit test script not found: $UNIT_SCRIPT${NC}"
-        echo "[INFO] Attempting to run unit tests directly via Maven..."
-        echo ""
+    echo "[INFO] Running unit tests via Maven (test profile with H2 in-memory database)..."
+    echo ""
 
-        cd "$SCRIPT_DIR"
+    cd "$SCRIPT_DIR"
 
-        # Copy test files into Maven test directory
-        MAVEN_TEST_DIR="$SCRIPT_DIR/src/test/java"
-        mkdir -p "$MAVEN_TEST_DIR"
-
-        # Copy all unit test Java files preserving package structure
-        if [ -d "$SCRIPT_DIR/unit_tests" ]; then
-            find "$SCRIPT_DIR/unit_tests" -name "*Test.java" | while read -r f; do
-                rel="${f#$SCRIPT_DIR/unit_tests/}"
-                target_dir="$MAVEN_TEST_DIR/$(dirname "$rel")"
-                mkdir -p "$target_dir"
-                cp "$f" "$target_dir/"
-            done
-        fi
-
-        # Run tests via Maven with H2 in-memory database (test profile)
-        mvn test -Dspring.profiles.active=test 2>&1
-        UNIT_EXIT=$?
-
-        # Cleanup copied test files
-        find "$MAVEN_TEST_DIR" -name "*Test.java" -delete 2>/dev/null || true
-        find "$MAVEN_TEST_DIR" -type d -empty -delete 2>/dev/null || true
-    fi
+    # Run tests via Maven with H2 in-memory database (test profile)
+    mvn test -Dspring.profiles.active=test 2>&1
+    UNIT_EXIT=$?
 
     echo ""
     if [ $UNIT_EXIT -eq 0 ]; then

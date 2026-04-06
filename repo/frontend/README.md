@@ -176,7 +176,8 @@ The backend verifies the timestamp is within a 120-second window, the nonce has 
 ## Testing
 
 ```bash
-npm test           # Run all 76 tests via Vitest
+npm test           # Run all 151 Vitest unit/integration tests
+npm run test:e2e   # Run 20 Playwright E2E tests (requires backend)
 ```
 
 | Layer | File | Coverage |

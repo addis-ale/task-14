@@ -34,6 +34,9 @@ public class AuthFilter extends OncePerRequestFilter {
         if ("OPTIONS".equalsIgnoreCase(request.getMethod())) {
             return true;
         }
+        if ("/api/v1/health".equals(uri)) {
+            return true;
+        }
         return ("POST".equalsIgnoreCase(request.getMethod()) && "/api/v1/auth/login".equals(uri));
     }
 

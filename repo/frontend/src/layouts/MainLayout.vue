@@ -137,6 +137,18 @@ function toggleLocale() {
   setLocale(locale.value === "zh-CN" ? "en" : "zh-CN");
 }
 
+function onVisibilityChange() {
+  if (document.hidden) {
+    if (badgeTimer) {
+      window.clearInterval(badgeTimer);
+      badgeTimer = undefined;
+    }
+  } else {
+    void fetchBadges();
+    badgeTimer = window.setInterval(fetchBadges, 60_000);
+  }
+}
+
 onMounted(() => {
   const drafts = auth.consumeDraftPrompt();
   if (drafts.length > 0) {
@@ -145,10 +157,12 @@ onMounted(() => {
   }
   void fetchBadges();
   badgeTimer = window.setInterval(fetchBadges, 60_000);
+  document.addEventListener("visibilitychange", onVisibilityChange);
 });
 
 onBeforeUnmount(() => {
   if (badgeTimer) window.clearInterval(badgeTimer);
+  document.removeEventListener("visibilitychange", onVisibilityChange);
 });
 </script>
 

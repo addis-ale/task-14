@@ -34,7 +34,7 @@ This will:
 
 - **Frontend**: [http://localhost:5173](http://localhost:5173)
 - **Backend API**: [http://localhost:8080](http://localhost:8080)
-- **MySQL Database**: `localhost:3306` (Internal: `mysql:3306`)
+- **MySQL Database**: `localhost:3307` (External) / `mysql:3306` (Internal Docker network)
 
 ## Configuration
 
@@ -60,6 +60,35 @@ mvn clean package
 cd repo/frontend
 npm install
 npm run dev
+```
+
+## Testing
+
+### Backend Unit Tests (Requires Java & Maven)
+```bash
+cd repo
+mvn test -Dspring.profiles.active=test   # Run 17+ JUnit 5 unit tests with H2 in-memory DB
+```
+
+### Backend API Tests (Requires running backend)
+```bash
+cd repo
+bash API_tests/run_api_tests.sh
+```
+
+### Frontend Tests
+```bash
+cd repo/frontend
+npm test           # Run 151 Vitest unit/integration tests
+npm run test:e2e   # Run 20 Playwright E2E tests (requires running backend)
+```
+
+### All Tests (Unified Runner)
+```bash
+cd repo
+bash run_tests.sh          # Run all tests (unit + API)
+bash run_tests.sh unit     # Run only unit tests
+bash run_tests.sh api      # Run only API tests
 ```
 
 ## Global Gitignore

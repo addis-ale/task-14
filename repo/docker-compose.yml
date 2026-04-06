@@ -9,7 +9,7 @@ services:
       MYSQL_CHARACTER_SET_SERVER: utf8mb4
       MYSQL_COLLATION_SERVER: utf8mb4_unicode_ci
     ports:
-      - "3306:3306"
+      - "3307:3306"
     volumes:
       - mysql_data:/var/lib/mysql
     healthcheck:
@@ -37,7 +37,7 @@ services:
     ports:
       - "8080:8080"
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/api/v1/auth/login", "-X", "POST", "-H", "Content-Type: application/json", "-d", "{}"]
+      test: ["CMD", "curl", "-f", "-o", "/dev/null", "-w", "%{http_code}", "http://localhost:8080/api/v1/health"]
       interval: 30s
       timeout: 10s
       retries: 3

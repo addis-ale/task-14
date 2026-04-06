@@ -34,7 +34,7 @@ This will:
 
 - **Frontend**: [http://localhost:5173](http://localhost:5173)
 - **Backend API**: [http://localhost:8080](http://localhost:8080)
-- **MySQL Database**: `localhost:3306` (Internal: `mysql:3306`)
+- **MySQL Database**: `localhost:3307` (External) / `mysql:3306` (Internal Docker network)
 
 ## Configuration
 

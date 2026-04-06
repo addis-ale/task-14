@@ -786,7 +786,11 @@ public class ExamSessionServiceImpl implements ExamSessionService {
     }
 
     private Long currentUserId() {
-        return UserContextHolder.get() == null ? 0L : UserContextHolder.get().getUserId();
+        UserContext context = UserContextHolder.get();
+        if (context == null) {
+            throw new BusinessException(ErrorCode.SESSION_INVALID, HttpStatus.UNAUTHORIZED, "User context required");
+        }
+        return context.getUserId();
     }
 
     private String maskId(Long studentId) {
