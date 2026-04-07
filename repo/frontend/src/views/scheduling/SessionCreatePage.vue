@@ -97,12 +97,13 @@ async function submit(payload: Record<string, unknown>): Promise<void> {
     termId: Number(payload.termId),
     gradeId: Number(payload.gradeId),
     subjectId: Number(payload.subjectId),
-    examDate: payload.examDate,
+    date: payload.examDate,
     startTime: payload.startTime,
     endTime: payload.endTime,
-    roomIds: parseIds(payload.roomIds),
-    candidateIds: parseIds(payload.candidates),
-    proctorIds: parseIds(payload.proctors),
+    status: "DRAFT",
+    roomAssignments: parseIds(payload.roomIds).map(id => ({ roomId: id, assignedCount: 0 })),
+    candidates: parseIds(payload.candidates).map((id, i) => ({ studentId: id, roomId: parseIds(payload.roomIds)[0] || 0, seatNumber: i + 1 })),
+    proctors: parseIds(payload.proctors).map(id => ({ proctorUserId: id, roomId: parseIds(payload.roomIds)[0] || 0, timeSlotStart: `${payload.examDate}T${payload.startTime}`, timeSlotEnd: `${payload.examDate}T${payload.endTime}` })),
   };
 
   try {

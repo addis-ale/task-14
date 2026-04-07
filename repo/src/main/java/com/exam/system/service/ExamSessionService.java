@@ -47,4 +47,6 @@ public interface ExamSessionService {
     List<ProctorScheduleItemResponse> getProctorSchedule(Long proctorUserId, Long termId, LocalDate date);
 
     List<StudentExamResponse> getStudentExams(Long studentId, Long termId);
+
+    void publishSession(Long sessionId);
 }

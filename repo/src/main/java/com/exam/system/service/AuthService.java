@@ -32,4 +32,7 @@ public interface AuthService {
      * Changes current user password after policy and history checks.
      */
     void changePassword(Long userId, ChangePasswordRequest request);
+
+    java.util.List<java.util.Map<String, Object>> listSessions(Long userId);
+    void revokeOtherSessions(Long userId, String currentToken);
 }

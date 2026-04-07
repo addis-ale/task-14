@@ -8,9 +8,16 @@ import jakarta.persistence.Id;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
 import java.time.LocalDateTime;
+import org.hibernate.annotations.Filter;
+import org.hibernate.annotations.FilterDef;
+import org.hibernate.annotations.ParamDef;
 
 @Entity
 @Table(name = "entity_version")
+@FilterDef(name = "versionScope", parameters = {
+        @ParamDef(name = "termId", type = Long.class)
+})
+@Filter(name = "versionScope", condition = "(:termId = 0 or term_id = :termId)")
 public class EntityVersion {
 
     @Id

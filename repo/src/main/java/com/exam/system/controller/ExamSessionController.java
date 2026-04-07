@@ -80,6 +80,13 @@ public class ExamSessionController {
         return ResponseEntity.noContent().build();
     }
 
+    @PostMapping("/api/v1/sessions/{sessionId}/publish")
+    public ResponseEntity<ApiResponse<Void>> publishSession(@PathVariable Long sessionId) {
+        activeRoleGuard.requireAny("ADMIN", "ACADEMIC_AFFAIRS");
+        examSessionService.publishSession(sessionId);
+        return ResponseEntity.ok(ApiResponse.successMessage("Session published"));
+    }
+
     @PostMapping("/api/v1/sessions/conflict-check")
     public ResponseEntity<ApiResponse<ConflictReportResponse>> conflictCheck(@Valid @RequestBody ConflictCheckRequest request) {
         activeRoleGuard.requireAny("ADMIN", "ACADEMIC_AFFAIRS");

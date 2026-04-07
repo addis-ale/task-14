@@ -165,6 +165,12 @@ public class UserServiceImpl implements UserService {
         if (request.getUsername() != null && !request.getUsername().isBlank()) {
             user.setUsername(InputSanitizer.sanitize(request.getUsername()));
         }
+        if (request.getStatus() != null && !request.getStatus().isBlank()) {
+            user.setStatus(UserStatus.valueOf(request.getStatus()));
+            if (UserStatus.ACTIVE.name().equals(request.getStatus())) {
+                user.setLockedUntil(null);
+            }
+        }
         if (request.getRoles() != null && !request.getRoles().isEmpty()) {
             user.setRoles(resolveRoles(request.getRoles()));
         }

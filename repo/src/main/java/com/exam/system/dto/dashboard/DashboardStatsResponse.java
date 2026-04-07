@@ -8,6 +8,8 @@ public class DashboardStatsResponse {
     private long pendingAntiCheatFlags;
     private long activeJobs;
     private long failedJobs;
+    private long upcomingSessions;
+    private java.util.List<java.util.Map<String, String>> recentActivity = new java.util.ArrayList<>();
 
     public long getTotalSessions() { return totalSessions; }
     public void setTotalSessions(long totalSessions) { this.totalSessions = totalSessions; }
@@ -21,4 +23,8 @@ public class DashboardStatsResponse {
     public void setActiveJobs(long activeJobs) { this.activeJobs = activeJobs; }
     public long getFailedJobs() { return failedJobs; }
     public void setFailedJobs(long failedJobs) { this.failedJobs = failedJobs; }
+    public long getUpcomingSessions() { return upcomingSessions; }
+    public void setUpcomingSessions(long upcomingSessions) { this.upcomingSessions = upcomingSessions; }
+    public java.util.List<java.util.Map<String, String>> getRecentActivity() { return recentActivity; }
+    public void setRecentActivity(java.util.List<java.util.Map<String, String>> recentActivity) { this.recentActivity = recentActivity; }
 }

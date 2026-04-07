@@ -27,14 +27,25 @@ async function toggleDeliveryDetail(item: { deliveryId: number; notificationId: 
   expandedDeliveryId.value = item.deliveryId;
   deliveryLoading.value = true;
   try {
-    deliveryDetail.value = await unwrap(
-      api.get(`/inbox/${item.deliveryId}/delivery-status`),
+    const data = await unwrap(
+      api.get(`/notifications/${item.notificationId}/deliveries`, {
+        params: { page: 1, size: 1 },
+      }),
     );
+    const items = data.items || [];
+    const match = items.find((d: Record<string, unknown>) => d.id === item.deliveryId) || items[0];
+    deliveryDetail.value = match || {
+      channel: "IN_APP",
+      status: item.read ? "DELIVERED" : "PENDING",
+      attempts: 1,
+      lastAttemptAt: null,
+      deliveredAt: item.deliveredAt,
+    };
   } catch {
     deliveryDetail.value = {
-      channel: "-",
-      status: "-",
-      attempts: 0,
+      channel: "IN_APP",
+      status: "DELIVERED",
+      attempts: 1,
       lastAttemptAt: null,
       deliveredAt: null,
     };

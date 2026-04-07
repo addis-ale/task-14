@@ -455,6 +455,15 @@ public class ExamSessionServiceImpl implements ExamSessionService {
         }).toList();
     }
 
+    @Override
+    @Transactional
+    public void publishSession(Long sessionId) {
+        ExamSession session = examSessionRepository.findById(sessionId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.RESOURCE_NOT_FOUND, HttpStatus.NOT_FOUND, "Session not found"));
+        session.setStatus("PUBLISHED");
+        examSessionRepository.save(session);
+    }
+
     private void validateSessionRequest(SessionUpsertRequest request) {
         if (request.getStartTime().isAfter(request.getEndTime()) || request.getStartTime().equals(request.getEndTime())) {
             throw new BusinessException(ErrorCode.VALIDATION_FAILED, HttpStatus.BAD_REQUEST,
@@ -752,8 +761,13 @@ public class ExamSessionServiceImpl implements ExamSessionService {
         SessionSummaryResponse response = new SessionSummaryResponse();
         response.setId(session.getId());
         response.setTermId(session.getTermId());
+        response.setTermName(academicTermRepository.findById(session.getTermId())
+                .map(t -> t.getName()).orElse("Term " + session.getTermId()));
         response.setSubjectId(session.getSubjectId());
+        response.setSubjectName(subjectRepository.findById(session.getSubjectId())
+                .map(s -> s.getName()).orElse("Subject " + session.getSubjectId()));
         response.setGradeId(session.getGradeId());
+        response.setGradeName("Grade " + session.getGradeId());
         response.setDate(session.getDate());
         response.setStartTime(session.getStartTime());
         response.setEndTime(session.getEndTime());

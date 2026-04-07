@@ -26,7 +26,9 @@ import com.exam.system.service.AuthService;
 import java.security.SecureRandom;
 import java.time.LocalDateTime;
 import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -128,8 +130,12 @@ public class AuthServiceImpl implements AuthService {
         session.setCreatedAt(LocalDateTime.now());
         sessionRepository.save(session);
 
+        // Generate a session-specific HMAC secret for request signing
+        String sessionSecret = UUID.randomUUID().toString().replace("-", "") + UUID.randomUUID().toString().replace("-", "");
+
         LoginResponse response = new LoginResponse();
         response.setToken(session.getToken());
+        response.setSessionSecret(sessionSecret);
         response.setExpiresIn(securityProperties.getSessionIdleTimeoutMinutes() * 60L);
         response.setUser(toUserProfile(user, activeRole));
         return response;
@@ -208,6 +214,27 @@ public class AuthServiceImpl implements AuthService {
         history.setUserId(userId);
         history.setPasswordHash(user.getPasswordHash());
         passwordHistoryRepository.save(history);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<Map<String, Object>> listSessions(Long userId) {
+        return sessionRepository.findByUserId(userId).stream().map(s -> {
+            Map<String, Object> map = new LinkedHashMap<>();
+            map.put("sessionId", s.getToken());
+            map.put("device", s.getDeviceFingerprint());
+            map.put("lastActiveAt", s.getCreatedAt() != null ? s.getCreatedAt().toString() : "");
+            map.put("current", false);
+            return map;
+        }).toList();
+    }
+
+    @Override
+    @Transactional
+    public void revokeOtherSessions(Long userId, String currentToken) {
+        sessionRepository.findByUserId(userId).stream()
+            .filter(s -> !currentToken.equals(s.getToken()))
+            .forEach(sessionRepository::delete);
     }
 
     private UserProfileDto toUserProfile(SysUser user, String activeRole) {

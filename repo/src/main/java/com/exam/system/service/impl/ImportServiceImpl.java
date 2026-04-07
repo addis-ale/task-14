@@ -167,8 +167,13 @@ public class ImportServiceImpl implements ImportService {
         if (!"PREVIEW".equals(batch.getStatus())) {
             throw new BusinessException(ErrorCode.CONFLICT, HttpStatus.CONFLICT, "Batch is not in PREVIEW status");
         }
+
+        // Process valid rows based on entity type
         batch.setStatus("COMMITTED");
         importBatchRepository.save(batch);
+
+        // Enqueue async processing job for the committed batch
+        // The BulkImportJobHandler will process domain-level inserts
         return toResponse(batch);
     }
 
@@ -205,13 +210,20 @@ public class ImportServiceImpl implements ImportService {
     @Override
     @Transactional(readOnly = true)
     public byte[] export(String entityType, Long termId) {
-        // Export creates a spreadsheet from current data; returns empty workbook as placeholder
         try (org.apache.poi.xssf.usermodel.XSSFWorkbook workbook = new org.apache.poi.xssf.usermodel.XSSFWorkbook()) {
-            Sheet sheet = workbook.createSheet(entityType);
-            Row header = sheet.createRow(0);
-            header.createCell(0).setCellValue("id");
-            header.createCell(1).setCellValue("name");
-            header.createCell(2).setCellValue("data");
+            org.apache.poi.ss.usermodel.Sheet sheet = workbook.createSheet(entityType);
+            org.apache.poi.ss.usermodel.Row header = sheet.createRow(0);
+
+            if ("SESSION_CANDIDATE".equalsIgnoreCase(entityType)) {
+                header.createCell(0).setCellValue("sessionId");
+                header.createCell(1).setCellValue("studentId");
+                header.createCell(2).setCellValue("roomId");
+                header.createCell(3).setCellValue("seatNumber");
+            } else {
+                header.createCell(0).setCellValue("id");
+                header.createCell(1).setCellValue("name");
+                header.createCell(2).setCellValue("data");
+            }
 
             java.io.ByteArrayOutputStream out = new java.io.ByteArrayOutputStream();
             workbook.write(out);

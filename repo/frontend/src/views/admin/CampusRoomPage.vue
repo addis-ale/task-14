@@ -102,7 +102,7 @@ async function saveRoom() {
   try {
     if (editingRoomId.value) {
       await unwrap(
-        api.put(`/campuses/${roomCampusId.value}/rooms/${editingRoomId.value}`, {
+        api.put(`/rooms/${editingRoomId.value}`, {
           name: roomForm.name,
           capacity: roomForm.capacity,
         }),

@@ -117,7 +117,7 @@ async function openDeliveryStatus(row: Record<string, unknown>): Promise<void> {
 
 async function retryDelivery(delivery: Record<string, unknown>): Promise<void> {
   try {
-    await unwrap(api.post(`/notifications/deliveries/${delivery.id}/retry`));
+    await unwrap(api.post(`/notifications/${deliveryNotifId.value}/deliveries/${delivery.id}/retry`));
     showSuccess(t("common.success"));
     if (deliveryNotifId.value) await openDeliveryStatus({ id: deliveryNotifId.value });
   } catch (err) {
