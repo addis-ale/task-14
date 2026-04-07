@@ -2,18 +2,7 @@ import { computed } from "vue";
 import { useAuthStore } from "@/stores/auth";
 import type { RoleName } from "@/types/ui";
 import type { ActionPermission } from "@/types/auth";
-
-/**
- * Default permission matrix per role.
- * Used as fallback when the server does not provide explicit permissions.
- */
-const ROLE_PERMISSIONS: Record<string, ActionPermission[]> = {
-  ADMIN: ["view", "enter", "import", "review", "publish", "create", "update", "delete", "export", "assign"],
-  ACADEMIC_AFFAIRS: ["view", "enter", "import", "review", "publish", "create", "update", "export", "assign"],
-  HOMEROOM_TEACHER: ["view", "enter", "export"],
-  SUBJECT_TEACHER: ["view", "enter", "export"],
-  STUDENT: ["view"],
-};
+import { ROLE_PERMISSIONS } from "@/config/permissions";
 
 export function useRBAC() {
   const authStore = useAuthStore();

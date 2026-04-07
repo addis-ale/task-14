@@ -34,6 +34,15 @@ public class UserRequestScopeDto {
         this.courseIds = courseIds;
     }
 
+    /** Alias for courseIds — frontend uses subjectIds */
+    public List<Long> getSubjectIds() {
+        return courseIds;
+    }
+
+    public void setSubjectIds(List<Long> subjectIds) {
+        this.courseIds = subjectIds;
+    }
+
     public Long getTermId() {
         return termId;
     }

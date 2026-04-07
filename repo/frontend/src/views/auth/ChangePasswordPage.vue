@@ -57,7 +57,7 @@ async function submit(): Promise<void> {
   try {
     await unwrap(
       api.put("/auth/password", {
-        oldPassword: form.oldPassword,
+        currentPassword: form.oldPassword,
         newPassword: form.newPassword,
       }),
     );

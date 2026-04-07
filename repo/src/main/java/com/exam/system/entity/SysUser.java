@@ -1,6 +1,7 @@
 package com.exam.system.entity;
 
 import jakarta.persistence.Column;
+import jakarta.persistence.Convert;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
@@ -44,6 +45,14 @@ public class SysUser {
 
     @Column(name = "device_token", length = 255)
     private String deviceToken;
+
+    /**
+     * Encrypted student card number — stored at rest using AES-256-GCM
+     * via {@link com.exam.system.security.crypto.EncryptedLongConverter}.
+     */
+    @Convert(converter = com.exam.system.security.crypto.EncryptedLongConverter.class)
+    @Column(name = "encrypted_student_no", length = 512)
+    private Long encryptedStudentNo;
 
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
@@ -125,6 +134,14 @@ public class SysUser {
 
     public void setDeviceToken(String deviceToken) {
         this.deviceToken = deviceToken;
+    }
+
+    public Long getEncryptedStudentNo() {
+        return encryptedStudentNo;
+    }
+
+    public void setEncryptedStudentNo(Long encryptedStudentNo) {
+        this.encryptedStudentNo = encryptedStudentNo;
     }
 
     public LocalDateTime getCreatedAt() {

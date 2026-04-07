@@ -36,9 +36,10 @@ const steps = [
         type: "select",
         required: true,
         options: [
-          { label: "EXAM_SCHEDULE_PUBLISHED", value: "EXAM_SCHEDULE_PUBLISHED" },
-          { label: "EXAM_TIME_CHANGED", value: "EXAM_TIME_CHANGED" },
-          { label: "EXAM_ROOM_CHANGED", value: "EXAM_ROOM_CHANGED" },
+          { label: "排考变更 Schedule Change", value: "SCHEDULE_CHANGE" },
+          { label: "审核结果 Review Outcome", value: "REVIEW_OUTCOME" },
+          { label: "签到提醒 Check-in Reminder", value: "CHECKIN_REMINDER" },
+          { label: "通知公告 General", value: "GENERAL_ANNOUNCEMENT" },
         ],
       },
       {

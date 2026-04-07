@@ -7,8 +7,11 @@ public class SessionSummaryResponse {
 
     private Long id;
     private Long termId;
+    private String termName;
     private Long subjectId;
+    private String subjectName;
     private Long gradeId;
+    private String gradeName;
     private LocalDate date;
     private LocalTime startTime;
     private LocalTime endTime;
@@ -30,6 +33,14 @@ public class SessionSummaryResponse {
         this.termId = termId;
     }
 
+    public String getTermName() {
+        return termName;
+    }
+
+    public void setTermName(String termName) {
+        this.termName = termName;
+    }
+
     public Long getSubjectId() {
         return subjectId;
     }
@@ -38,12 +49,28 @@ public class SessionSummaryResponse {
         this.subjectId = subjectId;
     }
 
+    public String getSubjectName() {
+        return subjectName;
+    }
+
+    public void setSubjectName(String subjectName) {
+        this.subjectName = subjectName;
+    }
+
     public Long getGradeId() {
         return gradeId;
     }
 
     public void setGradeId(Long gradeId) {
         this.gradeId = gradeId;
+    }
+
+    public String getGradeName() {
+        return gradeName;
+    }
+
+    public void setGradeName(String gradeName) {
+        this.gradeName = gradeName;
     }
 
     public LocalDate getDate() {

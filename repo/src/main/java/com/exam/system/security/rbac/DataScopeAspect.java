@@ -35,20 +35,27 @@ public class DataScopeAspect {
         }
 
         Session session = entityManager.unwrap(Session.class);
-        Filter filter = session.enableFilter("examSessionScope");
         ScopeDto scope = context.getScope();
         long termId = scope != null && scope.getTermId() != null ? scope.getTermId() : 0L;
         boolean gradeFilterEnabled = scope != null && scope.getGradeIds() != null && !scope.getGradeIds().isEmpty();
         java.util.List<Long> gradeIds = gradeFilterEnabled ? scope.getGradeIds() : java.util.List.of(-1L);
-        filter.setParameter("termId", termId);
-        filter.setParameter("gradeFilterEnabled", gradeFilterEnabled);
-        filter.setParameterList("gradeIds", gradeIds);
+
+        // Exam-session scope filter
+        Filter examFilter = session.enableFilter("examSessionScope");
+        examFilter.setParameter("termId", termId);
+        examFilter.setParameter("gradeFilterEnabled", gradeFilterEnabled);
+        examFilter.setParameterList("gradeIds", gradeIds);
+
+        // Version scope filter – restricts entity versions to the active term
+        Filter versionFilter = session.enableFilter("versionScope");
+        versionFilter.setParameter("termId", termId);
 
         try {
             DataScopeHolder.set(context.getScope());
             return joinPoint.proceed();
         } finally {
             session.disableFilter("examSessionScope");
+            session.disableFilter("versionScope");
             DataScopeHolder.clear();
         }
     }

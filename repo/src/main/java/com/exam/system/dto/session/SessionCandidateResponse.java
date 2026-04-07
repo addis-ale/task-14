@@ -1,5 +1,7 @@
 package com.exam.system.dto.session;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 public class SessionCandidateResponse {
 
     private Long studentId;
@@ -7,6 +9,7 @@ public class SessionCandidateResponse {
     private Long roomId;
     private Integer seatNumber;
 
+    @JsonIgnore
     public Long getStudentId() {
         return studentId;
     }

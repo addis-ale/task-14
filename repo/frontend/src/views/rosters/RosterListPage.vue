@@ -52,7 +52,8 @@ async function saveSeat(
   }
   await unwrap(
     api.put(`/sessions/${filters.sessionId}/candidates/${row.studentId}/seat`, {
-      seatNo,
+      seatNumber: Number(seatNo),
+      roomId: row.roomId,
     }),
   );
 }

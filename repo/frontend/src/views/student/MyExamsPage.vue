@@ -46,16 +46,16 @@ onMounted(() => {
     <ul v-else class="calendar-grid">
       <li
         v-for="item in exams"
-        :key="`${item.sessionId}-${item.examDate}`"
+        :key="`${item.sessionId}-${item.date}`"
         class="card exam-card"
       >
-        <strong>{{ item.subjectName || "Subject" }}</strong>
+        <strong>{{ item.subject || "Subject" }}</strong>
         <span
-          >{{ item.examDate }} {{ item.startTime }} - {{ item.endTime }}</span
+          >{{ item.date }} {{ item.startTime }} - {{ item.endTime }}</span
         >
         <small
-          >考场 Room: {{ item.roomName || "-" }} · 座位 Seat:
-          {{ item.seatNo || "-" }}</small
+          >考场 Room: {{ item.room || "-" }} · 座位 Seat:
+          {{ item.seat || "-" }}</small
         >
       </li>
     </ul>

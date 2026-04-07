@@ -25,7 +25,7 @@ export function useAutoSave<T extends Record<string, unknown>>(
     saving.value = true;
     error.value = "";
     try {
-      await unwrap(api.put(`/drafts/${options.formKey}`, options.data.value));
+      await unwrap(api.put(`/drafts/${options.formKey}`, { draftJson: JSON.stringify(options.data.value) }));
       hasDraft.value = true;
       lastSavedAt.value = new Date().toISOString();
     } catch (err) {
@@ -37,9 +37,12 @@ export function useAutoSave<T extends Record<string, unknown>>(
 
   async function loadDraft(): Promise<T | null> {
     try {
-      const data = await unwrap(api.get<T>(`/drafts/${options.formKey}`));
+      const data = await unwrap(api.get(`/drafts/${options.formKey}`));
       hasDraft.value = true;
-      return data;
+      if (data && data.draftJson) {
+        return JSON.parse(data.draftJson) as T;
+      }
+      return data as T;
     } catch {
       return null;
     }

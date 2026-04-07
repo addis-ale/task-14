@@ -19,12 +19,19 @@ async function commit(
   commitFailed.value = false;
   lastCommitRows.value = rows;
   try {
-    await unwrap(
-      api.post("/imports/rosters/commit", {
-        entityType: "SESSION_CANDIDATE",
-        rows: rows.map((row) => row.values),
-      }),
-    );
+    // Create a CSV blob and upload via the import/upload endpoint
+    const headers = Object.keys(rows[0]?.values || {});
+    const csvLines = [headers.join(",")];
+    for (const row of rows) {
+      csvLines.push(headers.map(h => row.values[h] || "").join(","));
+    }
+    const blob = new Blob([csvLines.join("\n")], { type: "text/csv" });
+    const formData = new FormData();
+    formData.append("file", blob, "roster-import.csv");
+    formData.append("entityType", "SESSION_CANDIDATE");
+
+    const batch = await unwrap(api.post("/import/upload", formData));
+    await unwrap(api.post(`/import/${batch.id}/commit`));
     message.value = `已提交 ${rows.length} 行 Successfully committed`;
     commitFailed.value = false;
   } catch (err) {

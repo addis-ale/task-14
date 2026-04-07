@@ -67,7 +67,8 @@ export const useRostersStore = defineStore("rosters", () => {
     try {
       await unwrap(
         api.put(`/sessions/${sessionId}/candidates/${studentId}/seat`, {
-          seatNo,
+          seatNumber: Number(seatNo),
+          roomId: 0,
         }),
       );
       showSuccess("座位更新成功 Seat updated");
@@ -104,13 +105,17 @@ export const useRostersStore = defineStore("rosters", () => {
     loading.value = true;
     error.value = null;
     try {
-      await unwrap(
-        api.post("/imports/rosters/commit", {
-          entityType: "SESSION_CANDIDATE",
-          sessionId,
-          rows: rosterRows,
-        }),
-      );
+      const headers = Object.keys(rosterRows[0] || {});
+      const csvLines = [headers.join(",")];
+      for (const row of rosterRows) {
+        csvLines.push(headers.map(h => row[h] || "").join(","));
+      }
+      const blob = new Blob([csvLines.join("\n")], { type: "text/csv" });
+      const formData = new FormData();
+      formData.append("file", blob, "roster-import.csv");
+      formData.append("entityType", "SESSION_CANDIDATE");
+      const batch = await unwrap(api.post("/import/upload", formData));
+      await unwrap(api.post(`/import/${batch.id}/commit`));
       showSuccess(`导入成功 ${rosterRows.length} rows imported`);
       return true;
     } catch (err) {

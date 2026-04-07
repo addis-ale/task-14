@@ -23,7 +23,7 @@ const columns: TableColumn[] = [
   { key: "termName", label: "学期 Term", sortable: true },
   { key: "gradeName", label: "年级 Grade", sortable: true },
   { key: "subjectName", label: "科目 Subject", sortable: true },
-  { key: "examDate", label: "日期 Date", sortable: true },
+  { key: "date", label: "日期 Date", sortable: true },
   { key: "startTime", label: "开始 Start", sortable: true },
   { key: "endTime", label: "结束 End", sortable: true },
 ];

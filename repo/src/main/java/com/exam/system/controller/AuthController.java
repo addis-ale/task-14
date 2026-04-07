@@ -74,6 +74,20 @@ public class AuthController {
         return ResponseEntity.ok(ApiResponse.successMessage("Password changed successfully"));
     }
 
+    @GetMapping("/sessions")
+    public ResponseEntity<ApiResponse<java.util.Map<String, Object>>> sessions(@RequestHeader("Authorization") String authorization) {
+        UserContext context = requireContext();
+        var sessions = authService.listSessions(context.getUserId());
+        return ResponseEntity.ok(ApiResponse.success(java.util.Map.of("sessions", sessions)));
+    }
+
+    @PostMapping("/sessions/revoke-others")
+    public ResponseEntity<ApiResponse<Void>> revokeOtherSessions(@RequestHeader("Authorization") String authorization) {
+        UserContext context = requireContext();
+        authService.revokeOtherSessions(context.getUserId(), extractToken(authorization));
+        return ResponseEntity.ok(ApiResponse.successMessage("Other sessions revoked"));
+    }
+
     private UserContext requireContext() {
         UserContext context = UserContextHolder.get();
         if (context == null) {

@@ -15,10 +15,8 @@ const filters = reactive({ role: "", status: "", search: "" });
 
 const columns: TableColumn[] = [
   { key: "username", label: "账号 Username", sortable: true },
-  { key: "displayName", label: "显示名称 Display Name", sortable: true },
   { key: "roles", label: "角色 Roles", sortable: false },
   { key: "status", label: "状态 Status", sortable: true },
-  { key: "studentId", label: "学号 Student ID", sortable: false, maskPii: true },
   { key: "createdAt", label: "创建时间 Created At", sortable: true },
 ];
 
@@ -95,8 +93,7 @@ async function createUser(): Promise<void> {
       api.post("/users", {
         username: createForm.username,
         password: createForm.password,
-        displayName: createForm.displayName,
-        role: createForm.role,
+        roles: [createForm.role],
         scopes: {
           gradeIds: createForm.gradeId ? [Number(createForm.gradeId)] : [],
           classIds: createForm.classId ? [Number(createForm.classId)] : [],
@@ -182,7 +179,7 @@ async function unlock(row: Record<string, unknown>): Promise<void> {
 
 async function toggleConcurrentSessions(row: Record<string, unknown>): Promise<void> {
   try {
-    await unwrap(api.post(`/users/${row.id}/toggle-concurrent-sessions`));
+    await unwrap(api.put(`/users/${row.id}/concurrent-sessions`, { allowed: true }));
     showSuccess(t("common.success"));
     tableKey.value++;
   } catch (err) {
